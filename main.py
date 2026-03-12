@@ -33,6 +33,7 @@ class MyMainWindow(QMainWindow):
         # Titolo finestra
         self.setWindowTitle("AIrton")
         # Parametri applicazione
+        self.pwd = __file__[:len(__file__)-__file__[::-1].find("/")]
         self.vettoreFrequenze = [8000,16000,22050,44100,48000]
         self.audio_raw = np.array([])
         self.audio_fs = 8000
@@ -188,10 +189,16 @@ class MyMainWindow(QMainWindow):
         self.tbRPMAnalysis_NNmodel = QComboBox()
         self.tbRPMAnalysis_NNmodel.addItems(["F1_DeepSpeech_5_torch","F1_DeepSpeech_9_torch"])
         self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,7,1)
+
+        label = QLabel("Filter type")
+        self.tbRPMAnalysisLayout.addWidget(label,8,0)
+        self.tbRPMAnalysis_FilterType = QComboBox()
+        self.tbRPMAnalysis_FilterType.addItems(["Weighted average","Median"])
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterType,8,1)
         
         self.tbRPMAnalysis_cmdAnalysis = QPushButton("Run analysis")
         self.tbRPMAnalysis_cmdAnalysis.clicked.connect(self.AnalisiRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAnalysis,8,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAnalysis,9,0,1,2)
         
         # Tab per FFT
         subtbRPMAnalysis = QTabWidget()
@@ -217,7 +224,7 @@ class MyMainWindow(QMainWindow):
         subtbRPMAnalysis.addTab(subtbRPMAnalysis_Analysis,"Analysis")
         
         # Stretch colonne
-        self.tbRPMAnalysisLayout.addWidget(subtbRPMAnalysis,0,2,10,1)
+        self.tbRPMAnalysisLayout.addWidget(subtbRPMAnalysis,0,2,11,1)
         self.tbRPMAnalysisLayout.setColumnStretch(0,1)
         self.tbRPMAnalysisLayout.setColumnStretch(1,1)
         self.tbRPMAnalysisLayout.setColumnStretch(2,15)
@@ -286,10 +293,12 @@ class MyMainWindow(QMainWindow):
             hop_length = int(win_length*overlap)
             # Calcolo STFT
             f,t,stft = ss.stft(self.audio_raw,fs=self.audio_fs,window="hann",nperseg=win_length,noverlap=win_length-hop_length,nfft=n_fft)
+            magnitude = np.abs(stft)
+            magnitude[magnitude<1e-5] = 1e-5
             # Salvataggio nei dati app
             self.audio_fft = {"f":f[:np.int32(np.floor(stft.shape[0]/2))],
                             "t":t,
-                            "stft":np.abs(stft)[:np.int32(np.floor(stft.shape[0]/2)),:]}
+                            "stft":magnitude[:np.int32(np.floor(stft.shape[0]/2)),:]}
             # Plot
             self.subtbRPMAnalysis_FFT_figure.clf()
             self.subtbRPMAnalysis_FFT_axes = self.subtbRPMAnalysis_FFT_figure.add_subplot()
@@ -302,12 +311,65 @@ class MyMainWindow(QMainWindow):
         
     def AnalisiRPM(self):
         if self.audio_fft["stft"].shape[1] > 0:
-            if tbRPMAnalysis_analysisType.currentIndex() == 0:
+            if self.tbRPMAnalysis_analysisType.currentIndex() == 0:
                 # Standard
                 a = 1
-            elif tbRPMAnalysis_analysisType.currentIndex() == 1:
-                # Rete neurale
-                a = 1
+            elif self.tbRPMAnalysis_analysisType.currentIndex() == 1:
+                # Rete neurale: carico il modello
+                nomerete = self.tbRPMAnalysis_NNmodel.currentText()
+                if nomerete == "F1_DeepSpeech_5_torch":
+                    media = 541.25
+                    devst = 63.71
+                elif nomerete == "F1_DeepSpeech_9_torch":
+                    media = 538.91
+                    devst = 65.11
+                mymodel = torch.load(self.pwd+nomerete,weights_only=False,map_location=torch.device("cuda"))
+                mymodel.eval()
+                # Preprocessing dello spettro
+                magnitude = self.audio_fft["stft"]
+                magnitude = (magnitude-magnitude.mean())/magnitude.std()
+                X = np.expand_dims(magnitude.T,1)
+                # Previsione della rete
+                with torch.no_grad():
+                    Y_predict = mymodel(torch.Tensor(X).to("cuda")).cpu().numpy()[:,0]
+                    Y_predict = (Y_predict*devst + media).astype(np.int16)
+                # Sistemo tutte le frequenze utilizzando la ricerca manuale del massimo per ogni punto previsto dalla rete
+                ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
+                Y = np.zeros(Y_predict.shape,dtype=np.int16)
+                for iy in range(Y_predict.shape[0]):
+                    # Cerco il massimo sull'ordine della ricostruzione
+                    ir = np.argmax(magnitude[Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
+                    # Cerco il massimo su tutti gli ordini disponibili
+                    i0 = np.zeros((ordini.shape[0],))
+                    pesi = np.zeros((ordini.shape[0],))
+                    for io in range(ordini.shape[0]):
+                        if int(Y_predict[iy]/ordini[io]) < (magnitude.shape[0]-16):
+                            i0[io] = np.argmax(magnitude[int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
+                            if i0[io]*ordini[io] > ir:
+                                pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
+                            elif i0[io]*ordini[io] < ir:
+                                pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
+                            else:
+                                pesi[io] = 1
+                    # Calcolo la frequenza finale
+                    if self.tbRPMAnalysis_FilterType.currentIndex() == 0:
+                        # Media pesata
+                        Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
+                    elif self.tbRPMAnalysis_FilterType.currentIndex() == 1:
+                        # Mediana
+                        Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
+            # Plot
+            self.subtbRPMAnalysis_Analysis_figure.clf()
+            self.subtbRPMAnalysis_Analysis_axes = self.subtbRPMAnalysis_Analysis_figure.add_subplot()
+            self.subtbRPMAnalysis_Analysis_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
+            self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][Y_predict],'.w',label="predicted")
+            self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][Y],'.-r',label="corrected")
+            self.subtbRPMAnalysis_Analysis_axes.legend()
+            self.subtbRPMAnalysis_Analysis_axes.set_xlabel("time [s]")
+            self.subtbRPMAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
+            self.subtbRPMAnalysis_Analysis_axes.grid()
+            self.subtbRPMAnalysis_Analysis_figure.tight_layout()
+            self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
         
 # Creazione istanza app
 app = QApplication(sys.argv)
