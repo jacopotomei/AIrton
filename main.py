@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QL
 from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
+import re
 import sys
 import torch
 import numpy as np
@@ -345,9 +346,18 @@ class MyMainWindow(QMainWindow):
         if self.audio_fft["stft"].shape[1] > 0:
             if self.tbRPMAnalysis_analysisType.currentIndex() == 0:
                 # Standard: ricerco i massimi sulle armoniche impostate
-                armoniche = self.
-                Y_predict = 0
-                Y = 0
+                armoniche = np.array([np.int8(d) for d in re.findall("\d",self.tbRPMAnalysis_baseHarmonics.text())])
+                if armoniche.shape[0] == 0:
+                    armoniche = np.array([4])
+                rpmmax = np.float32(self.tbRPMAnalysis_maxRPM.text())
+                rpmmin = np.float32(self.tbRPMAnalysis_minRPM.text())
+                Y_predict = np.zeros((armoniche.shape[0],self.audio_fft["stft"].shape[1]))
+                for it in range(Y_predict.shape[1]):
+                    for ia in range(Y_predict.shape[0]):
+                        i0 = np.where(self.audio_fft["f"]>=rpmmin*armoniche[ia]/120)[0][0]
+                        i1 = np.where(self.audio_fft["f"]>=rpmmax*armoniche[ia]/120)[0][0]
+                        Y_predict[ia,it] = (np.argmax(self.audio_fft["stft"][i0:i1,it]) + i0 - 1)*12/armoniche[ia]
+                Y_predict = np.median(Y_predict,axis=0).astype(np.int16)
             elif self.tbRPMAnalysis_analysisType.currentIndex() == 1:
                 # Rete neurale: carico il modello
                 nomerete = self.tbRPMAnalysis_NNmodel.currentText()
@@ -388,33 +398,33 @@ class MyMainWindow(QMainWindow):
                     else:
                         Y_predict = mymodel(torch.Tensor(X)).numpy()[:,0]
                     Y_predict = (Y_predict*devst + media).astype(np.int16)
-                # Sistemo tutte le frequenze utilizzando la ricerca manuale del massimo per ogni punto previsto dalla rete
-                if self.tbRPMAnalysis_Correction.currentIndex() > 0:
-                    ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
-                    Y = np.zeros(Y_predict.shape,dtype=np.int16)
-                    for iy in range(Y_predict.shape[0]):
-                        # Cerco il massimo sull'ordine della ricostruzione
-                        ir = np.argmax(magnitude[Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
-                        # Cerco il massimo su tutti gli ordini disponibili
-                        i0 = np.zeros((ordini.shape[0],))
-                        pesi = np.zeros((ordini.shape[0],))
-                        for io in range(ordini.shape[0]):
-                            if int(Y_predict[iy]/ordini[io]) < (magnitude.shape[0]-16):
-                                i0[io] = np.argmax(magnitude[int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
-                                if i0[io]*ordini[io] > ir:
-                                    pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
-                                elif i0[io]*ordini[io] < ir:
-                                    pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
-                                else:
-                                    pesi[io] = 1
-                        # Calcolo la frequenza finale
-                        if self.tbRPMAnalysis_Correction.currentIndex() == 1:
-                            # Media pesata
-                            Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
-                        elif self.tbRPMAnalysis_Correction.currentIndex() == 2:
-                            # Mediana
-                            Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
-                else:
+            # Sistemo tutte le frequenze utilizzando la ricerca manuale del massimo per ogni punto previsto (dalla rete o dal metodo manuale)
+            if self.tbRPMAnalysis_Correction.currentIndex() > 0:
+                ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
+                Y = np.zeros(Y_predict.shape,dtype=np.int16)
+                for iy in range(Y_predict.shape[0]):
+                    # Cerco il massimo sull'ordine della ricostruzione
+                    ir = np.argmax(self.audio_fft["stft"][Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
+                    # Cerco il massimo su tutti gli ordini disponibili
+                    i0 = np.zeros((ordini.shape[0],))
+                    pesi = np.zeros((ordini.shape[0],))
+                    for io in range(ordini.shape[0]):
+                        if int(Y_predict[iy]/ordini[io]) < (self.audio_fft["stft"].shape[0]-16):
+                            i0[io] = np.argmax(self.audio_fft["stft"][int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
+                            if i0[io]*ordini[io] > ir:
+                                pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
+                            elif i0[io]*ordini[io] < ir:
+                                pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
+                            else:
+                                pesi[io] = 1
+                    # Calcolo la frequenza finale
+                    if self.tbRPMAnalysis_Correction.currentIndex() == 1:
+                        # Media pesata
+                        Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
+                    elif self.tbRPMAnalysis_Correction.currentIndex() == 2:
+                        # Mediana
+                        Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
+            else:
                     Y = Y_predict
             # Plot
             self.subtbRPMAnalysis_Analysis_figure.clf()
