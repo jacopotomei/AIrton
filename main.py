@@ -1,5 +1,6 @@
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QGridLayout, QLineEdit, QTabWidget, QFileDialog, QComboBox, QCheckBox, QVBoxLayout
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QLabel, QMessageBox,
+    QGridLayout, QLineEdit, QTabWidget, QFileDialog, QComboBox, QCheckBox, QVBoxLayout, QDialog)
 from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
@@ -33,7 +34,10 @@ class MyMainWindow(QMainWindow):
         # Titolo finestra
         self.setWindowTitle("AIrton")
         # Parametri applicazione
-        self.pwd = __file__[:len(__file__)-__file__[::-1].find("/")]
+        if sys.platform == "win32":
+            self.pwd = __file__[:len(__file__)-__file__[::-1].find("\\")]
+        else:
+            self.pwd = __file__[:len(__file__)-__file__[::-1].find("/")]
         self.vettoreFrequenze = [8000,16000,22050,44100,48000]
         self.audio_raw = np.array([])
         self.audio_fs = 8000
@@ -184,21 +188,40 @@ class MyMainWindow(QMainWindow):
         self.tbRPMAnalysis_analysisType.addItems(["Standard","AI"])
         self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_analysisType,6,1)
         
-        label = QLabel("NN model")
+        label = QLabel("Maximum engine speed")
         self.tbRPMAnalysisLayout.addWidget(label,7,0)
+        self.tbRPMAnalysis_maxRPM = QLineEdit("12500")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_maxRPM,7,1)
+        
+        label = QLabel("Minimum engine speed")
+        self.tbRPMAnalysisLayout.addWidget(label,8,0)
+        self.tbRPMAnalysis_minRPM = QLineEdit("5000")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_minRPM,8,1)
+        
+        label = QLabel("NN model")
+        self.tbRPMAnalysisLayout.addWidget(label,9,0)
         self.tbRPMAnalysis_NNmodel = QComboBox()
         self.tbRPMAnalysis_NNmodel.addItems(["F1_DeepSpeech_5_torch","F1_DeepSpeech_9_torch"])
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,7,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,9,1)
 
-        label = QLabel("Filter type")
-        self.tbRPMAnalysisLayout.addWidget(label,8,0)
-        self.tbRPMAnalysis_FilterType = QComboBox()
-        self.tbRPMAnalysis_FilterType.addItems(["Weighted average","Median"])
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterType,8,1)
+        label = QLabel("Correction")
+        self.tbRPMAnalysisLayout.addWidget(label,10,0)
+        self.tbRPMAnalysis_Correction = QComboBox()
+        self.tbRPMAnalysis_Correction.addItems(["No correction","Weighted average","Median"])
+        self.tbRPMAnalysis_Correction.setCurrentIndex(2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Correction,10,1)
         
-        self.tbRPMAnalysis_cmdAnalysis = QPushButton("Run analysis")
-        self.tbRPMAnalysis_cmdAnalysis.clicked.connect(self.AnalisiRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAnalysis,9,0,1,2)
+        self.tbRPMAnalysis_cmdAutomatedAnalysis = QPushButton("Run automated analysis")
+        self.tbRPMAnalysis_cmdAutomatedAnalysis.clicked.connect(self.AnalisiAutomaticaRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,11,0,1,2)
+        
+        self.tbRPMAnalysis_cmdManualAnalysis = QPushButton("Run manual analysis")
+        self.tbRPMAnalysis_cmdManualAnalysis.clicked.connect(self.AnalisiManualeRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,12,0,1,2)
+        
+        self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Run manual analysis")
+        self.tbRPMAnalysis_cmdSalvaRPM.clicked.connect(self.salvaRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,13,0,1,2)
         
         # Tab per FFT
         subtbRPMAnalysis = QTabWidget()
@@ -224,7 +247,7 @@ class MyMainWindow(QMainWindow):
         subtbRPMAnalysis.addTab(subtbRPMAnalysis_Analysis,"Analysis")
         
         # Stretch colonne
-        self.tbRPMAnalysisLayout.addWidget(subtbRPMAnalysis,0,2,11,1)
+        self.tbRPMAnalysisLayout.addWidget(subtbRPMAnalysis,0,2,15,1)
         self.tbRPMAnalysisLayout.setColumnStretch(0,1)
         self.tbRPMAnalysisLayout.setColumnStretch(1,1)
         self.tbRPMAnalysisLayout.setColumnStretch(2,15)
@@ -306,14 +329,25 @@ class MyMainWindow(QMainWindow):
             self.subtbRPMAnalysis_FFT_axes.set_xlabel("time [s]")
             self.subtbRPMAnalysis_FFT_axes.set_ylabel("frequency [Hz]")
             self.subtbRPMAnalysis_FFT_axes.grid()
+            self.subtbRPMAnalysis_FFT_axes1 = self.subtbRPMAnalysis_FFT_axes.twinx()
+            self.subtbRPMAnalysis_FFT_axes1.plot(self.audio_fft["t"],np.zeros_like(self.audio_fft["t"]),linewidth=0)
+            self.subtbRPMAnalysis_FFT_axes1.set_ylabel("engine speed [rpm]")
+            self.subtbRPMAnalysis_FFT_axes1.set_ylim(self.subtbRPMAnalysis_FFT_axes.get_ylim()[0]*10,self.subtbRPMAnalysis_FFT_axes.get_ylim()[1]*10)
             self.subtbRPMAnalysis_FFT_figure.tight_layout()
             self.subtbRPMAnalysis_FFT_canvas.draw_idle()
+    
+    def AnalisiManualeRPM(self):
+        # Correzione giri tramite pennello su plot
+        a = 1
         
-    def AnalisiRPM(self):
+    def AnalisiAutomaticaRPM(self):
+        # Detection automatica dei giri tramite armoniche o tramite rete neurale
         if self.audio_fft["stft"].shape[1] > 0:
             if self.tbRPMAnalysis_analysisType.currentIndex() == 0:
-                # Standard
-                a = 1
+                # Standard: ricerco i massimi sulle armoniche impostate
+                armoniche = self.
+                Y_predict = 0
+                Y = 0
             elif self.tbRPMAnalysis_analysisType.currentIndex() == 1:
                 # Rete neurale: carico il modello
                 nomerete = self.tbRPMAnalysis_NNmodel.currentText()
@@ -323,41 +357,65 @@ class MyMainWindow(QMainWindow):
                 elif nomerete == "F1_DeepSpeech_9_torch":
                     media = 538.91
                     devst = 65.11
-                mymodel = torch.load(self.pwd+nomerete,weights_only=False,map_location=torch.device("cuda"))
+                if torch.cuda.is_available():
+                    mymodel = torch.load(self.pwd+nomerete,weights_only=False,map_location=torch.device("cuda"))
+                else:
+                    mymodel = torch.load(self.pwd+nomerete,weights_only=False,map_location=torch.device("cpu"))
                 mymodel.eval()
                 # Preprocessing dello spettro
                 magnitude = self.audio_fft["stft"]
                 magnitude = (magnitude-magnitude.mean())/magnitude.std()
                 X = np.expand_dims(magnitude.T,1)
+                # Controllo che la dimensione dello spettro sia compatibile con il primo layer della rete
+                if (X.shape[1] != 1) | (X.shape[2] != 1024):
+                    dlg = QMessageBox(self)
+                    dlg.setWindowTitle("AIrton")
+                    dlg.setText("Current FFT configuration does not match with the input shape required by the neural network.\nIf you continue, input array will be reshaped accordingly. Do you want to proceed?")
+                    dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    dlg.setIcon(QMessageBox.Icon.Critical)
+                    button = dlg.exec()
+                    if button == 65536:
+                        return
+                    elif button == 16384:
+                        if X.shape[-1] > 1024:
+                            X = X[:,:,:1024]
+                        else:
+                            X = np.concat((X,np.zeros((X.shape[0],X.shape[1],1024-X.shape[-1]))),axis=2)
                 # Previsione della rete
                 with torch.no_grad():
-                    Y_predict = mymodel(torch.Tensor(X).to("cuda")).cpu().numpy()[:,0]
+                    if torch.cuda.is_available():
+                        Y_predict = mymodel(torch.Tensor(X).to("cuda")).cpu().numpy()[:,0]
+                    else:
+                        Y_predict = mymodel(torch.Tensor(X)).numpy()[:,0]
                     Y_predict = (Y_predict*devst + media).astype(np.int16)
                 # Sistemo tutte le frequenze utilizzando la ricerca manuale del massimo per ogni punto previsto dalla rete
-                ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
-                Y = np.zeros(Y_predict.shape,dtype=np.int16)
-                for iy in range(Y_predict.shape[0]):
-                    # Cerco il massimo sull'ordine della ricostruzione
-                    ir = np.argmax(magnitude[Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
-                    # Cerco il massimo su tutti gli ordini disponibili
-                    i0 = np.zeros((ordini.shape[0],))
-                    pesi = np.zeros((ordini.shape[0],))
-                    for io in range(ordini.shape[0]):
-                        if int(Y_predict[iy]/ordini[io]) < (magnitude.shape[0]-16):
-                            i0[io] = np.argmax(magnitude[int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
-                            if i0[io]*ordini[io] > ir:
-                                pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
-                            elif i0[io]*ordini[io] < ir:
-                                pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
-                            else:
-                                pesi[io] = 1
-                    # Calcolo la frequenza finale
-                    if self.tbRPMAnalysis_FilterType.currentIndex() == 0:
-                        # Media pesata
-                        Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
-                    elif self.tbRPMAnalysis_FilterType.currentIndex() == 1:
-                        # Mediana
-                        Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
+                if self.tbRPMAnalysis_Correction.currentIndex() > 0:
+                    ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
+                    Y = np.zeros(Y_predict.shape,dtype=np.int16)
+                    for iy in range(Y_predict.shape[0]):
+                        # Cerco il massimo sull'ordine della ricostruzione
+                        ir = np.argmax(magnitude[Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
+                        # Cerco il massimo su tutti gli ordini disponibili
+                        i0 = np.zeros((ordini.shape[0],))
+                        pesi = np.zeros((ordini.shape[0],))
+                        for io in range(ordini.shape[0]):
+                            if int(Y_predict[iy]/ordini[io]) < (magnitude.shape[0]-16):
+                                i0[io] = np.argmax(magnitude[int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
+                                if i0[io]*ordini[io] > ir:
+                                    pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
+                                elif i0[io]*ordini[io] < ir:
+                                    pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
+                                else:
+                                    pesi[io] = 1
+                        # Calcolo la frequenza finale
+                        if self.tbRPMAnalysis_Correction.currentIndex() == 1:
+                            # Media pesata
+                            Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
+                        elif self.tbRPMAnalysis_Correction.currentIndex() == 2:
+                            # Mediana
+                            Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
+                else:
+                    Y = Y_predict
             # Plot
             self.subtbRPMAnalysis_Analysis_figure.clf()
             self.subtbRPMAnalysis_Analysis_axes = self.subtbRPMAnalysis_Analysis_figure.add_subplot()
@@ -368,8 +426,15 @@ class MyMainWindow(QMainWindow):
             self.subtbRPMAnalysis_Analysis_axes.set_xlabel("time [s]")
             self.subtbRPMAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
             self.subtbRPMAnalysis_Analysis_axes.grid()
+            self.subtbRPMAnalysis_Analysis_axes1 = self.subtbRPMAnalysis_Analysis_axes.twinx()
+            self.subtbRPMAnalysis_Analysis_axes1.plot(self.audio_fft["t"],10*self.audio_fft["f"][Y],linewidth=0)
+            self.subtbRPMAnalysis_Analysis_axes1.set_ylabel("engine speed [rpm]")
+            self.subtbRPMAnalysis_Analysis_axes1.set_ylim(self.subtbRPMAnalysis_Analysis_axes.get_ylim()[0]*10,self.subtbRPMAnalysis_Analysis_axes.get_ylim()[1]*10)
             self.subtbRPMAnalysis_Analysis_figure.tight_layout()
             self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
+            
+    def salvaRPM(self):
+        a = 1
         
 # Creazione istanza app
 app = QApplication(sys.argv)
