@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QL
     QGridLayout, QLineEdit, QTabWidget, QFileDialog, QComboBox, QCheckBox, QVBoxLayout, QDialog)
 from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
+from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib import pyplot as plt
 import re
 import sys
@@ -42,9 +43,15 @@ class MyMainWindow(QMainWindow):
         self.vettoreFrequenze = [8000,16000,22050,44100,48000]
         self.audio_raw = np.array([])
         self.audio_fs = 8000
+        # Inizializzazione struttura app
         self.audio_fft = {"f":np.array([]),"t":np.array([]),"stft":np.array([[]])}
+        self.rpm = {"i":np.array([]),"t":np.array([]),"y":np.array([])}
         # Creazione componenti
         self.creaWidgets()
+        # Disattivo le shortcut di matplotlib
+        for k in plt.rcParams:
+            if k.startswith("keymap"):
+                [plt.rcParams[k].remove(h) for h in plt.rcParams[k]]
         # Finestra visibile
         self.showMaximized()
 
@@ -143,6 +150,7 @@ class MyMainWindow(QMainWindow):
         self.mainLayout.setColumnStretch(1, 10)
         self.mainLayout.setRowStretch(0, 1)
         self.mainLayout.setRowStretch(1, 10)
+        
         # Tab <Engine speed analysis>
         self.tbRPMAnalysisLayout = QGridLayout()
         self.tbRPMAnalysis.setLayout(self.tbRPMAnalysisLayout)
@@ -174,21 +182,21 @@ class MyMainWindow(QMainWindow):
         #self.tbRPMAnalysis_hopLength = QLineEdit("410")
         #self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_hopLength,5,1)
         
-        label = QLabel("Main harmonics")
-        self.tbRPMAnalysisLayout.addWidget(label,4,0)
-        self.tbRPMAnalysis_baseHarmonics = QLineEdit("9")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_baseHarmonics,4,1)
-        
         self.tbRPMAnalysis_cmdFFT = QPushButton("Calculate FFT")
         self.tbRPMAnalysis_cmdFFT.clicked.connect(self.CalcolaFFT)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdFFT,5,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdFFT,4,0,1,2)
         
         label = QLabel("Analysis type")
-        self.tbRPMAnalysisLayout.addWidget(label,6,0)
+        self.tbRPMAnalysisLayout.addWidget(label,5,0)
         self.tbRPMAnalysis_analysisType = QComboBox()
         self.tbRPMAnalysis_analysisType.addItems(["Standard","AI"])
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_analysisType,6,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_analysisType,5,1)
         
+        label = QLabel("Main harmonics")
+        self.tbRPMAnalysisLayout.addWidget(label,6,0)
+        self.tbRPMAnalysis_baseHarmonics = QLineEdit("4,6,9")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_baseHarmonics,6,1)
+
         label = QLabel("Maximum engine speed")
         self.tbRPMAnalysisLayout.addWidget(label,7,0)
         self.tbRPMAnalysis_maxRPM = QLineEdit("12500")
@@ -211,21 +219,38 @@ class MyMainWindow(QMainWindow):
         self.tbRPMAnalysis_Correction.addItems(["No correction","Weighted average","Median"])
         self.tbRPMAnalysis_Correction.setCurrentIndex(2)
         self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Correction,10,1)
+
+        label = QLabel("Filter")
+        self.tbRPMAnalysisLayout.addWidget(label,11,0)
+        self.tbRPMAnalysis_Filter = QComboBox()
+        self.tbRPMAnalysis_Filter.addItems(["No filter","Rolling average","Median filter","Lowpass filter"])
+        self.tbRPMAnalysis_Filter.setCurrentIndex(2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Filter,11,1)
+
+        label = QLabel("Filter kernel size")
+        self.tbRPMAnalysisLayout.addWidget(label,12,0)
+        self.tbRPMAnalysis_KernelSize = QLineEdit("11")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_KernelSize,12,1)
+
+        label = QLabel("LP filter frequency")
+        self.tbRPMAnalysisLayout.addWidget(label,13,0)
+        self.tbRPMAnalysis_FilterFrequency = QLineEdit("0.1")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterFrequency,13,1)
         
         self.tbRPMAnalysis_cmdAutomatedAnalysis = QPushButton("Run automated analysis")
         self.tbRPMAnalysis_cmdAutomatedAnalysis.clicked.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,11,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,14,0,1,2)
         
         self.tbRPMAnalysis_cmdManualAnalysis = QPushButton("Run manual analysis")
         self.tbRPMAnalysis_cmdManualAnalysis.clicked.connect(self.AnalisiManualeRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,12,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,15,0,1,2)
         
-        self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Run manual analysis")
+        self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Save engine speed")
         self.tbRPMAnalysis_cmdSalvaRPM.clicked.connect(self.salvaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,13,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,16,0,1,2)
         
         # Tab per FFT
-        subtbRPMAnalysis = QTabWidget()
+        self.subtbRPMAnalysis = QTabWidget()
         subtbRPMAnalysis_FFT = QWidget()
         self.subtbRPMAnalysis_FFT_figure = Figure(figsize=(15,10))
         self.subtbRPMAnalysis_FFT_canvas = FigureCanvas(self.subtbRPMAnalysis_FFT_figure)
@@ -234,7 +259,7 @@ class MyMainWindow(QMainWindow):
         vbox.addWidget(self.subtbRPMAnalysis_FFT_toolbar)
         vbox.addWidget(self.subtbRPMAnalysis_FFT_canvas)
         subtbRPMAnalysis_FFT.setLayout(vbox)
-        subtbRPMAnalysis.addTab(subtbRPMAnalysis_FFT,"FFT")
+        self.subtbRPMAnalysis.addTab(subtbRPMAnalysis_FFT,"FFT")
         
         # Tab per analisi giri
         subtbRPMAnalysis_Analysis = QWidget()
@@ -245,10 +270,21 @@ class MyMainWindow(QMainWindow):
         vbox.addWidget(self.subtbRPMAnalysis_Analysis_toolbar)
         vbox.addWidget(self.subtbRPMAnalysis_Analysis_canvas)
         subtbRPMAnalysis_Analysis.setLayout(vbox)
-        subtbRPMAnalysis.addTab(subtbRPMAnalysis_Analysis,"Analysis")
+        self.subtbRPMAnalysis.addTab(subtbRPMAnalysis_Analysis,"Analysis")
+
+        # Tab per correzione giri
+        subtbRPMAnalysis_Correction = QWidget()
+        self.subtbRPMAnalysis_Correction_figure = Figure(figsize=(15,10))
+        self.subtbRPMAnalysis_Correction_canvas = FigureCanvas(self.subtbRPMAnalysis_Correction_figure)
+        self.subtbRPMAnalysis_Correction_toolbar = NavigationToolbar2QT(self.subtbRPMAnalysis_Correction_canvas, self)
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.subtbRPMAnalysis_Correction_toolbar)
+        vbox.addWidget(self.subtbRPMAnalysis_Correction_canvas)
+        subtbRPMAnalysis_Correction.setLayout(vbox)
+        self.subtbRPMAnalysis.addTab(subtbRPMAnalysis_Correction,"Correction")
         
         # Stretch colonne
-        self.tbRPMAnalysisLayout.addWidget(subtbRPMAnalysis,0,2,15,1)
+        self.tbRPMAnalysisLayout.addWidget(self.subtbRPMAnalysis,0,2,30,1)
         self.tbRPMAnalysisLayout.setColumnStretch(0,1)
         self.tbRPMAnalysisLayout.setColumnStretch(1,1)
         self.tbRPMAnalysisLayout.setColumnStretch(2,15)
@@ -338,12 +374,158 @@ class MyMainWindow(QMainWindow):
             self.subtbRPMAnalysis_FFT_canvas.draw_idle()
     
     def AnalisiManualeRPM(self):
-        # Correzione giri tramite pennello su plot
-        a = 1
-        
+        # Definizione funzioni: click destro
+        def destro(evento):
+            if evento.button == 3:
+                # Vedo che strumento ha usato l'utente
+                if (evento.canvas.figure.get_gid() == -1):
+                    # Lasso
+                    p = [p for p in evento.canvas.figure.axes[0].get_lines() if (p._color=="C0") & (len(p._x)>0)]
+                    p = p[0]._path
+                    xmin = np.array([x[0] for x in p.vertices]).min().astype("int")
+                    xmax = np.array([x[0] for x in p.vertices]).max().astype("int")
+                    xlin = np.arange(xmin,xmax,1)
+                    ylim_max = np.array([np.max(np.array([x[1] for x in p.vertices if (x[0]>=z-0.5) & (x[0]<=z+0.5)]),initial=0) for z in xlin]).astype("int")
+                    ylim_min = np.array([np.min(np.array([x[1] for x in p.vertices if (x[0]>=z-0.5) & (x[0]<=z+0.5)]),initial=1000) for z in xlin]).astype("int")
+                    imax = np.zeros((xlin.shape[0],))
+                    for i in range(xlin.shape[0]):
+                        if (ylim_max[i]>0) & (ylim_min[i]<1000):
+                            if (ylim_max[i] - ylim_min[i]) > 0:
+                                imax[i] = self.audio_fft["stft"][ylim_min[i]:ylim_max[i],xlin[i]].argmax(axis=0) + ylim_min[i]
+                        
+                    if len([t.get_gid() for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
+                        evento.canvas.figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
+                    else:
+                        linea = [t.get_gid() for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
+                    p.remove()
+                elif (evento.canvas.figure.get_gid() == 1):
+                    # Rettangolo
+                    vertici_x = np.array((np.max((0,np.floor(RS.corners[0].min()-1))),np.min((self.audio_fft["stft"].shape[1],np.ceil(RS.corners[0].max()+1)))),dtype="int")
+                    vertici_y = np.array((np.max((0,np.floor(RS.corners[1].min()-1))),np.min((self.audio_fft["stft"].shape[0],np.ceil(RS.corners[1].max()+1)))),dtype="int")
+                    imax = self.audio_fft["stft"][vertici_y[0]:vertici_y[1],vertici_x[0]:vertici_x[1]].argmax(axis=0) + vertici_y[0]
+                    if len(evento.modifiers) > 0:
+                        fattore = re.findall("[\d{1}|\w{1}]$",evento.key)
+                        tasto = re.findall("^(.*)\+",evento.key)
+                        if (len(fattore) > 0) & (len(tasto) > 0):
+                            fattore = fattore[0]
+                            if fattore == "q":
+                                fattore = 12/8
+                            elif fattore == "w":
+                                fattore = 12/9
+                            elif fattore == "e":
+                                fattore = 12/10
+                            elif fattore == "r":
+                                fattore = 12/11
+                            elif fattore == "z":
+                                fattore = 13/12
+                            elif fattore == "x":
+                                fattore = 14/12
+                            elif fattore == "c":
+                                fattore = 15/12
+                            elif fattore == "v":
+                                fattore = 16/12
+                            else:
+                                fattore = 12/int(fattore)
+                            tasto = tasto[0]
+                            if tasto == "ctrl":
+                                # Moltiplico
+                                imax = np.array(np.round(imax*fattore),dtype=imax.dtype)
+                            elif tasto == "alt":
+                                # Divido
+                                imax = np.array(np.round(imax/fattore),dtype=imax.dtype)
+                            elif tasto == "shift":
+                                # Moltiplico per la radice quadrata
+                                imax = np.array(np.round(imax*np.sqrt(fattore)),dtype=imax.dtype)
+                            elif tasto == "ctrl+alt":
+                                # Divido per la radice quadrata
+                                imax = np.array(np.round(imax/np.sqrt(fattore)),dtype=imax.dtype)
+                    if len([t.get_gid() for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
+                        evento.canvas.figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
+                    else:
+                        linea = [t for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
+                        nuovax = np.concatenate((linea.get_xdata(),np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0])))
+                        nuovay = np.concatenate((linea.get_ydata(),imax))
+                        nuovax,indici = np.unique(nuovax,return_index=True)
+                        nuovay = nuovay[indici]
+                        linea.set_xdata(nuovax)
+                        linea.set_ydata(nuovay)
+                RS.clear()
+                LS.clear()
+                evento.canvas.draw_idle()
+            elif evento.button == 2:
+                # Controllo che non ci siano punti dentro al rettangolo: nel caso, li cancello
+                linea = [t for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"]
+                if len(linea) > 0:
+                    linea = linea[0]
+                    # indici_linea = np.array([i for i in range(len(linea._x)) if (linea._x[i]>=np.floor(RS.corners[0].min())) & (linea._x[i]<=np.ceil(RS.corners[0].max())) & (linea._y[i]>=np.floor(RS.corners[1].min())) & (linea._y[i]<=np.ceil(RS.corners[1].max()))])
+                    # indici_linea = np.array([i for i in np.arange(int(np.floor(RS.corners[0][0])-25),int(np.floor(RS.corners[0][1])+25)) if (linea._x[i]>=np.floor(RS.corners[0].min())) & (linea._x[i]<=np.ceil(RS.corners[0].max())) & (linea._y[i]>=np.floor(RS.corners[1].min())) & (linea._y[i]<=np.ceil(RS.corners[1].max()))])
+                    indici_x = np.array([ix for ix in range(len(linea._x)) if linea._x[ix] in np.arange(int(np.floor(RS.corners[0][0])-5),int(np.floor(RS.corners[0][1])+5))],dtype="int")
+                    indici_y = np.array([iy for iy in indici_x if linea._y[iy] in np.arange(int(np.floor(RS.corners[1][0])-5),int(np.floor(RS.corners[1][2])+5))])
+                    if len(indici_y) > 0:
+                        nuovax = np.delete(linea._x,indici_y)
+                        nuovay = np.delete(linea._y,indici_y)
+                        linea.set_data(nuovax,nuovay)
+                        evento.canvas.draw_idle()
+        # Definizione funzioni: attivazione lazo
+        def attivaLS(evento):
+            if evento.key == "control":
+                LS.set_active(True)
+                RS.set_active(False)
+                print(LS.active)
+        # Definizione funzioni: attivazione rettangolo
+        def disattivaLS(evento):
+            if evento.key == "control":
+                LS.set_active(False)
+                RS.set_active(True)
+                print(LS.active)
+            elif evento.key == "escape":
+                RS.clear()
+                LS.clear()
+        # Definizione funzioni: dummy per rettangolo
+        def dummy(eclick, erelease):
+            # Disegno il rettangolo
+            # patches.Rectangle((np.max((0,np.floor(RS.corners[0].min()-1))),np.max((0,np.floor(RS.corners[1].min()-1)))),int(np.ceil(RS.corners[1][2]-RS.corners[1][0])),
+            #                 int(np.ceil(RS.corners[0][1]-RS.corners[0][0])),linewidth=1,alpha=0.5,facecolor="green",gid="suca")
+            eclick.canvas.figure.set_gid(1)
+        # Definizione funzioni: dummy per lazo
+        def dummy_lasso(eclick,verts):
+            # Disegno il lasso
+            # path = Path(verts)
+            eclick.canvas.figure.set_gid(-1)
+
+        # Correzione manuale giri su plot: attivo la tab corrispondente
+        self.subtbRPMAnalysis.setCurrentIndex(2)
+        # Plotto i giri e definisco i callback per interagire con il grafico
+        self.subtbRPMAnalysis_Correction_figure.clf()
+        self.subtbRPMAnalysis_Correction_figure.set_gid(1)
+        # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("close_event",chiudi)
+        self.subtbRPMAnalysis_Correction_axes = self.subtbRPMAnalysis_Correction_figure.add_subplot()
+        self.subtbRPMAnalysis_Correction_axes.set_gid(0)
+        self.subtbRPMAnalysis_Correction_axes1 = self.subtbRPMAnalysis_Correction_axes.twinx()
+        self.subtbRPMAnalysis_Correction_axes1.plot(np.array([self.audio_fft["t"][0],self.audio_fft["t"][-1]]),np.array([10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]]),linewidth=0)
+        self.subtbRPMAnalysis_Correction_axes1.set_ylim((10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]))
+        self.subtbRPMAnalysis_Correction_axes1.tick_params(top=True,labeltop=True,bottom=False,labelbottom=False)
+        self.subtbRPMAnalysis_Correction_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain")
+        self.subtbRPMAnalysis_Correction_axes.plot()
+        if self.rpm["i"].shape[0] > 0:
+            self.subtbRPMAnalysis_Correction_axes.plot(self.rpm["i"],self.rpm["y"],'.-r',gid="giri")
+        self.subtbRPMAnalysis_Correction_axes.grid()
+        self.subtbRPMAnalysis_Correction_axes.set_title("Q=8° (1.5)    -    W=9° (1.33)    -    E=10° (1.2)    -    R=11° (1.09)    -    Z=13° (1.08)    -    X=14° (1.16)    -    C=15° (1.25)    -    V=16° (1.33)")
+        RS = RectangleSelector(self.subtbRPMAnalysis_Correction_axes, dummy, useblit=True, button=[1], minspanx=5, minspany=5, spancoords='pixels', interactive=False)
+        LS = LassoSelector(self.subtbRPMAnalysis_Correction_axes, onselect=dummy_lasso, useblit=True, button=[1])
+        LS.active = False
+        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_release_event",disattivaLS)
+        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",attivaLS)
+        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("button_release_event",destro)
+        self.subtbRPMAnalysis_Correction_canvas.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self.subtbRPMAnalysis_Correction_canvas.setFocus()
+        self.subtbRPMAnalysis_Correction_figure.tight_layout()
+
     def AnalisiAutomaticaRPM(self):
         # Detection automatica dei giri tramite armoniche o tramite rete neurale
         if self.audio_fft["stft"].shape[1] > 0:
+            # Attivo la tab corrispondente
+            self.subtbRPMAnalysis.setCurrentIndex(1)
             if self.tbRPMAnalysis_analysisType.currentIndex() == 0:
                 # Standard: ricerco i massimi sulle armoniche impostate
                 armoniche = np.array([np.int8(d) for d in re.findall("\d",self.tbRPMAnalysis_baseHarmonics.text())])
@@ -426,6 +608,32 @@ class MyMainWindow(QMainWindow):
                         Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
             else:
                     Y = Y_predict
+            # Filtro i giri ricalcolati
+            # ["No filter","Rolling average","Median filter","Lowpass filter (light)","Lowpass filter (medium)","Lowpass filter (strong)"]
+            if self.tbRPMAnalysis_Filter.currentIndex() > 0:
+                if self.tbRPMAnalysis_Filter.currentIndex() == 1:
+                    # Media mobile
+                    window_size = np.int16(self.tbRPMAnalysis_KernelSize.text())
+                    if (window_size < 0) | (window_size is None) | (window_size == np.nan):
+                        window_size = 11
+                    Y = np.convolve(Y, np.ones(window_size) / window_size, mode='valid')
+                if self.tbRPMAnalysis_Filter.currentIndex() == 2:
+                    # Mediana mobile
+                    window_size = np.int16(self.tbRPMAnalysis_KernelSize.text())
+                    if (window_size < 0) | (window_size is None) | (window_size == np.nan):
+                        window_size = 11
+                    Y = ss.medfilt(Y,window_size)
+                elif self.tbRPMAnalysis_Filter.currentIndex() == 3:
+                    # Lowpass
+                    fc = np.float32(self.tbRPMAnalysis_FilterFrequency.text())
+                    if (fc < 0) | (fc > 1) | (fc is None) | (fc == np.nan):
+                        fc = 0.1
+                    b,a = ss.butter(1,fc)
+                    Y = ss.filtfilt(b,a,Y)
+            # Salvataggio dati nella struttura app
+            self.rpm["t"] = self.audio_fft["t"]
+            self.rpm["i"] = np.arange(Y.shape[0])
+            self.rpm["y"] = Y
             # Plot
             self.subtbRPMAnalysis_Analysis_figure.clf()
             self.subtbRPMAnalysis_Analysis_axes = self.subtbRPMAnalysis_Analysis_figure.add_subplot()
