@@ -244,10 +244,14 @@ class MyMainWindow(QMainWindow):
         self.tbRPMAnalysis_cmdManualAnalysis = QPushButton("Run manual analysis")
         self.tbRPMAnalysis_cmdManualAnalysis.clicked.connect(self.AnalisiManualeRPM)
         self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,15,0,1,2)
+
+        self.tbRPMAnalysis_cmdStartOver = QPushButton("Start over")
+        self.tbRPMAnalysis_cmdStartOver.clicked.connect(self.CancellaTuttoRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdStartOver,16,0,1,2)
         
         self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Save engine speed")
         self.tbRPMAnalysis_cmdSalvaRPM.clicked.connect(self.salvaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,16,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,17,0,1,2)
         
         # Tab per FFT
         self.subtbRPMAnalysis = QTabWidget()
@@ -373,14 +377,46 @@ class MyMainWindow(QMainWindow):
             self.subtbRPMAnalysis_FFT_figure.tight_layout()
             self.subtbRPMAnalysis_FFT_canvas.draw_idle()
     
+    def CancellaTuttoRPM(self):
+        self.rpm = {"i":np.array([]),"t":np.array([]),"y":np.array([])}
+        if hasattr(self,"subtbRPMAnalysis_Analysis_axes"):
+            [c.remove() for c in self.subtbRPMAnalysis_Analysis_axes.get_children() if c._label in ["predicted","corrected"]]
+        if hasattr(self,"subtbRPMAnalysis_Analysis_axes1"):
+            [c.remove() for c in self.subtbRPMAnalysis_Analysis_axes1.get_children() if c._label in ["predicted","corrected"]]
+        self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
+        if hasattr(self,"subtbRPMAnalysis_Correction_axes"):
+            [c.remove() for c in self.subtbRPMAnalysis_Correction_axes.get_children() if c._gid in ["giri"]]
+        if hasattr(self,"subtbRPMAnalysis_Correction_axes1"):
+            [c.remove() for c in self.subtbRPMAnalysis_Correction_axes1.get_children() if c._gid in ["giri"]]
+        self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+    
     def AnalisiManualeRPM(self):
+        # Definizione funzioni: tab
+        def tastiera(evento):
+            if evento.key == " ":
+                if self.subtbRPMAnalysis_Correction_axes.get_xlabel() == "sample\n[RECTANGLE]":
+                    self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[LASSO]")
+                    RS.set_active(False)
+                    LS.set_active(True)
+                    self.subtbRPMAnalysis_Correction_canvas.widgetlock(LS)
+                    self.subtbRPMAnalysis_Correction_figure.set_gid(-1)
+                else:
+                    self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[RECTANGLE]")
+                    LS.set_active(False)
+                    RS.set_active(True)
+                    self.subtbRPMAnalysis_Correction_canvas.widgetlock(RS)
+                    self.subtbRPMAnalysis_Correction_figure.set_gid(1)
+                RS.clear()
+                LS.clear()
+                self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+
         # Definizione funzioni: click destro
         def destro(evento):
             if evento.button == 3:
                 # Vedo che strumento ha usato l'utente
-                if (evento.canvas.figure.get_gid() == -1):
+                if (self.subtbRPMAnalysis_Correction_figure.get_gid() == -1):
                     # Lasso
-                    p = [p for p in evento.canvas.figure.axes[0].get_lines() if (p._color=="C0") & (len(p._x)>0)]
+                    p = [p for p in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if (p._color=="C0") & (len(p._x)>0)]
                     p = p[0]._path
                     xmin = np.array([x[0] for x in p.vertices]).min().astype("int")
                     xmax = np.array([x[0] for x in p.vertices]).max().astype("int")
@@ -393,12 +429,12 @@ class MyMainWindow(QMainWindow):
                             if (ylim_max[i] - ylim_min[i]) > 0:
                                 imax[i] = self.audio_fft["stft"][ylim_min[i]:ylim_max[i],xlin[i]].argmax(axis=0) + ylim_min[i]
                         
-                    if len([t.get_gid() for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
-                        evento.canvas.figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
+                    if len([t.get_gid() for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
+                        self.subtbRPMAnalysis_Correction_figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
                     else:
-                        linea = [t.get_gid() for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
+                        linea = [t.get_gid() for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
                     p.remove()
-                elif (evento.canvas.figure.get_gid() == 1):
+                elif (self.subtbRPMAnalysis_Correction_figure.get_gid() == 1):
                     # Rettangolo
                     vertici_x = np.array((np.max((0,np.floor(RS.corners[0].min()-1))),np.min((self.audio_fft["stft"].shape[1],np.ceil(RS.corners[0].max()+1)))),dtype="int")
                     vertici_y = np.array((np.max((0,np.floor(RS.corners[1].min()-1))),np.min((self.audio_fft["stft"].shape[0],np.ceil(RS.corners[1].max()+1)))),dtype="int")
@@ -439,10 +475,10 @@ class MyMainWindow(QMainWindow):
                             elif tasto == "ctrl+alt":
                                 # Divido per la radice quadrata
                                 imax = np.array(np.round(imax/np.sqrt(fattore)),dtype=imax.dtype)
-                    if len([t.get_gid() for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
-                        evento.canvas.figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
+                    if len([t.get_gid() for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
+                        self.subtbRPMAnalysis_Correction_figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
                     else:
-                        linea = [t for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
+                        linea = [t for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
                         nuovax = np.concatenate((linea.get_xdata(),np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0])))
                         nuovay = np.concatenate((linea.get_ydata(),imax))
                         nuovax,indici = np.unique(nuovax,return_index=True)
@@ -454,7 +490,7 @@ class MyMainWindow(QMainWindow):
                 evento.canvas.draw_idle()
             elif evento.button == 2:
                 # Controllo che non ci siano punti dentro al rettangolo: nel caso, li cancello
-                linea = [t for t in evento.canvas.figure.axes[0].get_lines() if t.get_gid()=="giri"]
+                linea = [t for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"]
                 if len(linea) > 0:
                     linea = linea[0]
                     # indici_linea = np.array([i for i in range(len(linea._x)) if (linea._x[i]>=np.floor(RS.corners[0].min())) & (linea._x[i]<=np.ceil(RS.corners[0].max())) & (linea._y[i]>=np.floor(RS.corners[1].min())) & (linea._y[i]<=np.ceil(RS.corners[1].max()))])
@@ -466,21 +502,6 @@ class MyMainWindow(QMainWindow):
                         nuovay = np.delete(linea._y,indici_y)
                         linea.set_data(nuovax,nuovay)
                         evento.canvas.draw_idle()
-        # Definizione funzioni: attivazione lazo
-        def attivaLS(evento):
-            if evento.key == "control":
-                LS.set_active(True)
-                RS.set_active(False)
-                print(LS.active)
-        # Definizione funzioni: attivazione rettangolo
-        def disattivaLS(evento):
-            if evento.key == "control":
-                LS.set_active(False)
-                RS.set_active(True)
-                print(LS.active)
-            elif evento.key == "escape":
-                RS.clear()
-                LS.clear()
         # Definizione funzioni: dummy per rettangolo
         def dummy(eclick, erelease):
             # Disegno il rettangolo
@@ -498,7 +519,6 @@ class MyMainWindow(QMainWindow):
         # Plotto i giri e definisco i callback per interagire con il grafico
         self.subtbRPMAnalysis_Correction_figure.clf()
         self.subtbRPMAnalysis_Correction_figure.set_gid(1)
-        # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("close_event",chiudi)
         self.subtbRPMAnalysis_Correction_axes = self.subtbRPMAnalysis_Correction_figure.add_subplot()
         self.subtbRPMAnalysis_Correction_axes.set_gid(0)
         self.subtbRPMAnalysis_Correction_axes1 = self.subtbRPMAnalysis_Correction_axes.twinx()
@@ -506,16 +526,21 @@ class MyMainWindow(QMainWindow):
         self.subtbRPMAnalysis_Correction_axes1.set_ylim((10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]))
         self.subtbRPMAnalysis_Correction_axes1.tick_params(top=True,labeltop=True,bottom=False,labelbottom=False)
         self.subtbRPMAnalysis_Correction_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain")
-        self.subtbRPMAnalysis_Correction_axes.plot()
         if self.rpm["i"].shape[0] > 0:
             self.subtbRPMAnalysis_Correction_axes.plot(self.rpm["i"],self.rpm["y"],'.-r',gid="giri")
         self.subtbRPMAnalysis_Correction_axes.grid()
+        self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[RECTANGLE]")
+        self.subtbRPMAnalysis_Correction_axes.set_ylabel("frequency [Hz]")
+        self.subtbRPMAnalysis_Correction_axes1.set_ylabel("engine speed [rpm]")
         self.subtbRPMAnalysis_Correction_axes.set_title("Q=8° (1.5)    -    W=9° (1.33)    -    E=10° (1.2)    -    R=11° (1.09)    -    Z=13° (1.08)    -    X=14° (1.16)    -    C=15° (1.25)    -    V=16° (1.33)")
         RS = RectangleSelector(self.subtbRPMAnalysis_Correction_axes, dummy, useblit=True, button=[1], minspanx=5, minspany=5, spancoords='pixels', interactive=False)
         LS = LassoSelector(self.subtbRPMAnalysis_Correction_axes, onselect=dummy_lasso, useblit=True, button=[1])
         LS.active = False
-        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_release_event",disattivaLS)
-        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",attivaLS)
+        
+        # Associazione callback
+        # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_release_event",disattivaLS)
+        # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",attivaLS)
+        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",tastiera)
         self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("button_release_event",destro)
         self.subtbRPMAnalysis_Correction_canvas.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         self.subtbRPMAnalysis_Correction_canvas.setFocus()
