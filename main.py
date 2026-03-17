@@ -301,6 +301,13 @@ class MyMainWindow(QMainWindow):
         # File dialog
         nome = QFileDialog.getOpenFileName(self,"Import audio file", "/home", "WAV Audio Files (*.wav)")
         if nome[0] != "":
+            # Pulizia plot
+            self.subtbRPMAnalysis_FFT_figure.clf()
+            self.subtbRPMAnalysis_FFT_canvas.draw_idle()
+            self.subtbRPMAnalysis_Analysis_figure.clf()
+            self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
+            self.subtbRPMAnalysis_Correction_figure.clf()
+            self.subtbRPMAnalysis_Correction_canvas.draw_idle()
             # Impostazione del nome file
             self.txtAudio.setText(nome[0])
             # Lettura del file
@@ -398,17 +405,25 @@ class MyMainWindow(QMainWindow):
                     self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[LASSO]")
                     RS.set_active(False)
                     LS.set_active(True)
-                    self.subtbRPMAnalysis_Correction_canvas.widgetlock(LS)
                     self.subtbRPMAnalysis_Correction_figure.set_gid(-1)
                 else:
                     self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[RECTANGLE]")
                     LS.set_active(False)
                     RS.set_active(True)
-                    self.subtbRPMAnalysis_Correction_canvas.widgetlock(RS)
                     self.subtbRPMAnalysis_Correction_figure.set_gid(1)
                 RS.clear()
                 LS.clear()
                 self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+            elif evento.key == "control":
+                if self.subtbRPMAnalysis_Correction_axes.get_xlabel() == "sample\n[RECTANGLE]":
+                    RS.set_active(True)
+                    LS.set_active(False)
+                else:
+                    RS.set_active(False)
+                    LS.set_active(True)
+            elif evento.key == "escape":
+                RS.clear()
+                LS.clear()
 
         # Definizione funzioni: click destro
         def destro(evento):
@@ -418,22 +433,65 @@ class MyMainWindow(QMainWindow):
                     # Lasso
                     p = [p for p in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if (p._color=="C0") & (len(p._x)>0)]
                     p = p[0]._path
-                    xmin = np.array([x[0] for x in p.vertices]).min().astype("int")
-                    xmax = np.array([x[0] for x in p.vertices]).max().astype("int")
-                    xlin = np.arange(xmin,xmax,1)
-                    ylim_max = np.array([np.max(np.array([x[1] for x in p.vertices if (x[0]>=z-0.5) & (x[0]<=z+0.5)]),initial=0) for z in xlin]).astype("int")
-                    ylim_min = np.array([np.min(np.array([x[1] for x in p.vertices if (x[0]>=z-0.5) & (x[0]<=z+0.5)]),initial=1000) for z in xlin]).astype("int")
-                    imax = np.zeros((xlin.shape[0],))
-                    for i in range(xlin.shape[0]):
-                        if (ylim_max[i]>0) & (ylim_min[i]<1000):
-                            if (ylim_max[i] - ylim_min[i]) > 0:
-                                imax[i] = self.audio_fft["stft"][ylim_min[i]:ylim_max[i],xlin[i]].argmax(axis=0) + ylim_min[i]
-                        
+                    xmin = np.floor(p.vertices[:,0].min()).astype(np.int16) - 1
+                    xmax = np.ceil(p.vertices[:,0].max()).astype(np.int16) + 1
+                    ymin = np.floor(p.vertices[:,1].min()).astype(np.int16) - 1
+                    ymax = np.ceil(p.vertices[:,1].max()).astype(np.int16) + 1
+                    tutti = np.array([(x,y) for x in np.arange(xmin,xmax,1) for y in np.arange(ymin,ymax,1)])
+                    dentro = tutti[p.contains_points(tutti)]
+                    unico_x = np.unique(dentro[:,0])
+                    imax = np.zeros_like(unico_x)
+                    cnt = 0
+                    for u in unico_x:
+                        tutti_y = dentro[np.where(dentro[:,0]==u)[0]][:,1]
+                        imax[cnt] = self.audio_fft["stft"][tutti_y,u].argmax(axis=0) + tutti_y[0]
+                        cnt += 1                     
+                    if len(evento.modifiers) > 0:
+                        fattore = re.findall("[\d{1}|\w{1}]$",evento.key)
+                        tasto = re.findall("^(.*)\+",evento.key)
+                        if (len(fattore) > 0) & (len(tasto) > 0):
+                            fattore = fattore[0]
+                            if fattore == "q":
+                                fattore = 12/8
+                            elif fattore == "w":
+                                fattore = 12/9
+                            elif fattore == "e":
+                                fattore = 12/10
+                            elif fattore == "r":
+                                fattore = 12/11
+                            elif fattore == "z":
+                                fattore = 13/12
+                            elif fattore == "x":
+                                fattore = 14/12
+                            elif fattore == "c":
+                                fattore = 15/12
+                            elif fattore == "v":
+                                fattore = 16/12
+                            else:
+                                fattore = 12/int(fattore)
+                            tasto = tasto[0]
+                            if tasto == "ctrl":
+                                # Moltiplico
+                                imax = np.array(np.round(imax*fattore),dtype=imax.dtype)
+                            elif tasto == "alt":
+                                # Divido
+                                imax = np.array(np.round(imax/fattore),dtype=imax.dtype)
+                            elif tasto == "shift":
+                                # Moltiplico per la radice quadrata
+                                imax = np.array(np.round(imax*np.sqrt(fattore)),dtype=imax.dtype)
+                            elif tasto == "ctrl+alt":
+                                # Divido per la radice quadrata
+                                imax = np.array(np.round(imax/np.sqrt(fattore)),dtype=imax.dtype)
                     if len([t.get_gid() for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"]) == 0:
-                        self.subtbRPMAnalysis_Correction_figure.axes[0].plot(np.linspace(vertici_x[0],vertici_x[1]-1,imax.shape[0]),imax,'.-r',gid="giri")
+                        self.subtbRPMAnalysis_Correction_figure.axes[0].plot(unico_x,imax,'.-r',gid="giri")
                     else:
-                        linea = [t.get_gid() for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
-                    p.remove()
+                        linea = [t for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"][0]
+                        nuovax = np.concatenate((linea.get_xdata(),unico_x))
+                        nuovay = np.concatenate((linea.get_ydata(),imax))
+                        nuovax,indici = np.unique(nuovax,return_index=True)
+                        nuovay = nuovay[indici]
+                        linea.set_xdata(nuovax)
+                        linea.set_ydata(nuovay)
                 elif (self.subtbRPMAnalysis_Correction_figure.get_gid() == 1):
                     # Rettangolo
                     vertici_x = np.array((np.max((0,np.floor(RS.corners[0].min()-1))),np.min((self.audio_fft["stft"].shape[1],np.ceil(RS.corners[0].max()+1)))),dtype="int")
@@ -513,6 +571,18 @@ class MyMainWindow(QMainWindow):
             # Disegno il lasso
             # path = Path(verts)
             eclick.canvas.figure.set_gid(-1)
+        # Callback figura
+        def attivaLS(evento):
+            if evento.key == "control":
+                LS.set_active(True)
+                RS.set_active(False)
+        def disattivaLS(evento):
+            if evento.key == "control":
+                LS.set_active(False)
+                RS.set_active(True)
+            elif evento.key == "escape":
+                RS.clear()
+                LS.clear()
 
         # Correzione manuale giri su plot: attivo la tab corrispondente
         self.subtbRPMAnalysis.setCurrentIndex(2)
