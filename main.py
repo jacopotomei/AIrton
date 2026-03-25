@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import re
 import sys
 import torch
+import pickle
 import numpy as np
 import librosa as lib
 import scipy.signal as ss
@@ -253,9 +254,13 @@ class MyMainWindow(QMainWindow):
         self.tbRPMAnalysis_cmdStartOver.clicked.connect(self.CancellaTuttoRPM)
         self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdStartOver,16,0,1,2)
         
+        self.tbRPMAnalysis_cmdCaricaRPM = QPushButton("Load engine speed")
+        self.tbRPMAnalysis_cmdCaricaRPM.clicked.connect(self.caricaRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdCaricaRPM,17,0,1,2)
+
         self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Save engine speed")
         self.tbRPMAnalysis_cmdSalvaRPM.clicked.connect(self.salvaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,17,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,18,0,1,2)
         
         # Tab per FFT
         self.subtbRPMAnalysis = QTabWidget()
@@ -788,6 +793,7 @@ class MyMainWindow(QMainWindow):
                         fc = np.float32(self.tbRPMAnalysis_FilterFrequency.text())
                         if (fc < 0) | (fc > 1) | (fc is None) | (fc == np.nan):
                             fc = 0.1
+                            self.tbRPMAnalysis_FilterFrequency.setText("0.1")
                         b,a = ss.butter(1,fc)
                         Y = ss.filtfilt(b,a,Y).astype(np.int16)
                 # Salvataggio dati nella struttura app
@@ -860,8 +866,9 @@ class MyMainWindow(QMainWindow):
                     elif self.tbRPMAnalysis_Filter.currentIndex() == 3:
                         # Lowpass
                         fc = np.float32(self.tbRPMAnalysis_FilterFrequency.text())
-                        if (fc < 0) | (fc > 1) | (fc is None) | (fc == np.nan):
+                        if (fc < 0) | (fc >= 1) | (fc is None) | (fc == np.nan):
                             fc = 0.1
+                            self.tbRPMAnalysis_FilterFrequency.setText("0.1")
                         b,a = ss.butter(1,fc)
                         Y = ss.filtfilt(b,a,Y).astype(np.int16)
                 # Salvataggio dati nella struttura app
@@ -884,7 +891,96 @@ class MyMainWindow(QMainWindow):
                 self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
             
     def salvaRPM(self):
-        a = 1
+        # File dialog
+        nome = QFileDialog.getSaveFileName(self,"Save engine speed data","/home","Python pickle data (*.pickle)")
+        if nome[0] != "":
+            with open(nome[0]+".pickle", "ab") as f:
+                try:
+                    pickle.dump([self.audio_fft,self.rpm],f,pickle.HIGHEST_PROTOCOL)
+                    msgBox = QMessageBox()
+                    msgBox.setIcon(QMessageBox.Icon.Information)
+                    msgBox.setText("Data saved successfully.")
+                    msgBox.setWindowTitle("AIrton")
+                    msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    msgBox.exec()
+                except:
+                    msgBox = QMessageBox()
+                    msgBox.setIcon(QMessageBox.Icon.Critical)
+                    msgBox.setText("Error occurred during saving process.")
+                    msgBox.setWindowTitle("AIrton")
+                    msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    msgBox.exec()
+    
+    def caricaRPM(self):
+        # File dialog
+        nome = QFileDialog.getOpenFileName(self,"Load engine speed data","/home","Python pickle data (*.pickle)")
+        if nome[0] != "":
+            with open(nome[0], "rb") as f:
+                try:
+                    dati = pickle.load(f)
+                    if dati is None:
+                        # Dati KO
+                        msgBox = QMessageBox()
+                        msgBox.setIcon(QMessageBox.Icon.Critical)
+                        msgBox.setText("No data was loaded. Selected file is empty or not valid.")
+                        msgBox.setWindowTitle("AIrton")
+                        msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                        msgBox.exec()
+                    else:
+                        if len(dati) < 2:
+                            # Dati KO
+                            msgBox = QMessageBox()
+                            msgBox.setIcon(QMessageBox.Icon.Critical)
+                            msgBox.setText("No data was loaded. Selected file is empty or not valid.")
+                            msgBox.setWindowTitle("AIrton")
+                            msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                            msgBox.exec()
+                        else:
+                            # Dati OK
+                            self.audio_fft = dati[0]
+                            self.rpm = dati[1]
+                            # Plot FFT
+                            self.subtbRPMAnalysis_FFT_figure.clf()
+                            self.subtbRPMAnalysis_FFT_axes = self.subtbRPMAnalysis_FFT_figure.add_subplot()
+                            self.subtbRPMAnalysis_FFT_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
+                            self.subtbRPMAnalysis_FFT_axes.set_xlabel("time [s]")
+                            self.subtbRPMAnalysis_FFT_axes.set_ylabel("frequency [Hz]")
+                            self.subtbRPMAnalysis_FFT_axes.grid()
+                            self.subtbRPMAnalysis_FFT_axes1 = self.subtbRPMAnalysis_FFT_axes.twinx()
+                            self.subtbRPMAnalysis_FFT_axes1.plot(self.audio_fft["t"],np.zeros_like(self.audio_fft["t"]),linewidth=0)
+                            self.subtbRPMAnalysis_FFT_axes1.set_ylabel("engine speed [rpm]")
+                            self.subtbRPMAnalysis_FFT_axes1.set_ylim(self.subtbRPMAnalysis_FFT_axes.get_ylim()[0]*10,self.subtbRPMAnalysis_FFT_axes.get_ylim()[1]*10)
+                            self.subtbRPMAnalysis_FFT_figure.tight_layout()
+                            self.subtbRPMAnalysis_FFT_canvas.draw_idle()
+                            # Plot giri
+                            self.subtbRPMAnalysis_Analysis_figure.clf()
+                            self.subtbRPMAnalysis_Analysis_axes = self.subtbRPMAnalysis_Analysis_figure.add_subplot()
+                            self.subtbRPMAnalysis_Analysis_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
+                            self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][self.rpm["yraw"]],'.w',label="predicted")
+                            self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][self.rpm["y"]],'.-r',label="corrected")
+                            self.subtbRPMAnalysis_Analysis_axes.legend()
+                            self.subtbRPMAnalysis_Analysis_axes.set_xlabel("time [s]")
+                            self.subtbRPMAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
+                            self.subtbRPMAnalysis_Analysis_axes.grid()
+                            self.subtbRPMAnalysis_Analysis_axes1 = self.subtbRPMAnalysis_Analysis_axes.twinx()
+                            self.subtbRPMAnalysis_Analysis_axes1.plot(self.audio_fft["t"],10*self.audio_fft["f"][self.rpm["y"]],linewidth=0)
+                            self.subtbRPMAnalysis_Analysis_axes1.set_ylabel("engine speed [rpm]")
+                            self.subtbRPMAnalysis_Analysis_axes1.set_ylim(self.subtbRPMAnalysis_Analysis_axes.get_ylim()[0]*10,self.subtbRPMAnalysis_Analysis_axes.get_ylim()[1]*10)
+                            self.subtbRPMAnalysis_Analysis_figure.tight_layout()
+                            self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
+                            msgBox = QMessageBox()
+                            msgBox.setIcon(QMessageBox.Icon.Information)
+                            msgBox.setText("Data loaded successfully.")
+                            msgBox.setWindowTitle("AIrton")
+                            msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                            msgBox.exec()
+                except:
+                    msgBox = QMessageBox()
+                    msgBox.setIcon(QMessageBox.Icon.Critical)
+                    msgBox.setText("Error occurred during loading process.")
+                    msgBox.setWindowTitle("AIrton")
+                    msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    msgBox.exec()
 
     def CercaCambiate(self):
         if np.shape(self.rpm["y"])[0] > 0:
