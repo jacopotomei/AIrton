@@ -47,6 +47,7 @@ class MyMainWindow(QMainWindow):
         # Inizializzazione struttura app
         self.audio_fft = {"f":np.array([]),"t":np.array([]),"stft":np.array([[]])}
         self.rpm = {"i":np.array([]),"t":np.array([]),"y":np.array([]),"yraw":np.array([])}
+        self.gear = {"iup":np.array([]),"idown":np.array([]),"dmarciaup":np.array([]),"dmarciadown":np.array([])}
         # Creazione componenti
         self.creaWidgets()
         # Disattivo le shortcut di matplotlib
@@ -208,59 +209,64 @@ class MyMainWindow(QMainWindow):
         self.tbRPMAnalysis_minRPM = QLineEdit("5000")
         self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_minRPM,8,1)
         
-        label = QLabel("NN model")
+        label = QLabel("Manual multiplier")
         self.tbRPMAnalysisLayout.addWidget(label,9,0)
+        self.tbRPMAnalysis_Multiplier = QLineEdit("1")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Multiplier,9,1)
+        
+        label = QLabel("NN model")
+        self.tbRPMAnalysisLayout.addWidget(label,10,0)
         self.tbRPMAnalysis_NNmodel = QComboBox()
         self.tbRPMAnalysis_NNmodel.addItems(["F1_DeepSpeech_5_torch","F1_DeepSpeech_9_torch"])
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,9,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,10,1)
 
         label = QLabel("Correction")
-        self.tbRPMAnalysisLayout.addWidget(label,10,0)
+        self.tbRPMAnalysisLayout.addWidget(label,11,0)
         self.tbRPMAnalysis_Correction = QComboBox()
         self.tbRPMAnalysis_Correction.addItems(["No correction","Weighted average","Median"])
         self.tbRPMAnalysis_Correction.setCurrentIndex(2)
         self.tbRPMAnalysis_Correction.currentIndexChanged.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Correction,10,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Correction,11,1)
 
         label = QLabel("Filter")
-        self.tbRPMAnalysisLayout.addWidget(label,11,0)
+        self.tbRPMAnalysisLayout.addWidget(label,12,0)
         self.tbRPMAnalysis_Filter = QComboBox()
         self.tbRPMAnalysis_Filter.addItems(["No filter","Rolling average","Median filter","Lowpass filter"])
         self.tbRPMAnalysis_Filter.setCurrentIndex(2)
         self.tbRPMAnalysis_Filter.currentIndexChanged.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Filter,11,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Filter,12,1)
 
         label = QLabel("Filter kernel size")
-        self.tbRPMAnalysisLayout.addWidget(label,12,0)
+        self.tbRPMAnalysisLayout.addWidget(label,13,0)
         self.tbRPMAnalysis_KernelSize = QLineEdit("11")
         self.tbRPMAnalysis_KernelSize.editingFinished.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_KernelSize,12,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_KernelSize,13,1)
 
         label = QLabel("LP filter frequency")
-        self.tbRPMAnalysisLayout.addWidget(label,13,0)
+        self.tbRPMAnalysisLayout.addWidget(label,14,0)
         self.tbRPMAnalysis_FilterFrequency = QLineEdit("0.1")
         self.tbRPMAnalysis_FilterFrequency.editingFinished.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterFrequency,13,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterFrequency,14,1)
         
         self.tbRPMAnalysis_cmdAutomatedAnalysis = QPushButton("Run automated analysis")
         self.tbRPMAnalysis_cmdAutomatedAnalysis.clicked.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,14,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,15,0,1,2)
         
         self.tbRPMAnalysis_cmdManualAnalysis = QPushButton("Run manual analysis")
         self.tbRPMAnalysis_cmdManualAnalysis.clicked.connect(self.AnalisiManualeRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,15,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,16,0,1,2)
 
         self.tbRPMAnalysis_cmdStartOver = QPushButton("Start over")
         self.tbRPMAnalysis_cmdStartOver.clicked.connect(self.CancellaTuttoRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdStartOver,16,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdStartOver,17,0,1,2)
         
         self.tbRPMAnalysis_cmdCaricaRPM = QPushButton("Load engine speed")
         self.tbRPMAnalysis_cmdCaricaRPM.clicked.connect(self.caricaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdCaricaRPM,17,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdCaricaRPM,18,0,1,2)
 
         self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Save engine speed")
         self.tbRPMAnalysis_cmdSalvaRPM.clicked.connect(self.salvaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,18,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,19,0,1,2)
         
         # Tab per FFT
         self.subtbRPMAnalysis = QTabWidget()
@@ -306,41 +312,71 @@ class MyMainWindow(QMainWindow):
         self.tbGearAnalysisLayout = QGridLayout()
         self.tbGearAnalysis.setLayout(self.tbGearAnalysisLayout)
         
-        label = QLabel("RPM filter cutoff frequency")
+        label = QLabel("RPM filter frequency (upshift)")
         self.tbGearAnalysisLayout.addWidget(label,0,0)
-        self.tbGearAnalysis_LPFrequency = QLineEdit("0.25")
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_LPFrequency,0,1)
-
-        label = QLabel("RPM derivative zero threshold")
+        self.tbGearAnalysis_LPupFrequency = QLineEdit("0.25")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_LPupFrequency,0,1)
+        
+        label = QLabel("RPM derivative zero threshold (upshift)")
         self.tbGearAnalysisLayout.addWidget(label,1,0)
-        self.tbGearAnalysis_dRPM0Threshold = QLineEdit("50")
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_dRPM0Threshold,1,1)
-
-        label = QLabel("RPM derivative upshift threshold")
+        self.tbGearAnalysis_dRPM0upThreshold = QLineEdit("50")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_dRPM0upThreshold,1,1)
+        
+        label = QLabel("RPM derivative threshold (upshift)")
         self.tbGearAnalysisLayout.addWidget(label,2,0)
         self.tbGearAnalysis_dRPMupThreshold = QLineEdit("150")
         self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_dRPMupThreshold,2,1)
-
-        label = QLabel("RPM derivative downshift threshold")
+        
+        label = QLabel("RPM filter frequency (downshift)")
         self.tbGearAnalysisLayout.addWidget(label,3,0)
-        self.tbGearAnalysis_dRPMdownThreshold = QLineEdit("75")
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_dRPMdownThreshold,3,1)
+        self.tbGearAnalysis_LPdownFrequency = QLineEdit("0.5")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_LPdownFrequency,3,1)
+        
+        label = QLabel("Median filter kernel (downshift)")
+        self.tbGearAnalysisLayout.addWidget(label,4,0)
+        self.tbGearAnalysis_MedFiltKernel = QLineEdit("11")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_MedFiltKernel,4,1)
+
+        label = QLabel("Derivative filter frequency (downshift)")
+        self.tbGearAnalysisLayout.addWidget(label,5,0)
+        self.tbGearAnalysis_LPFiltFrequency = QLineEdit("0.25")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_LPFiltFrequency,5,1)
+        
+        label = QLabel("Window for maximum search (downshift)")
+        self.tbGearAnalysisLayout.addWidget(label,6,0)
+        self.tbGearAnalysis_MaxSearchWindow = QLineEdit("0,8")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_MaxSearchWindow,6,1)
+        
+        label = QLabel("Window for minimum search (downshift)")
+        self.tbGearAnalysisLayout.addWidget(label,7,0)
+        self.tbGearAnalysis_MinSearchWindow = QLineEdit("5,2")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_MinSearchWindow,7,1)
+        
+        label = QLabel("Window for 2° maximum search (downshift)")
+        self.tbGearAnalysisLayout.addWidget(label,8,0)
+        self.tbGearAnalysis_Max2SearchWindow = QLineEdit("0,3")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_Max2SearchWindow,8,1)
+        
+        label = QLabel("Engine speed minimum gradient (downshift)")
+        self.tbGearAnalysisLayout.addWidget(label,9,0)
+        self.tbGearAnalysis_RPMGradient = QLineEdit("220")
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_RPMGradient,9,1)
 
         self.tbGearAnalysis_cmdCercaUp = QPushButton("Search upshifts")
         self.tbGearAnalysis_cmdCercaUp.clicked.connect(self.CercaCambiate)
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdCercaUp,4,0,1,2)
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdCercaUp,10,0,1,2)
 
         self.tbGearAnalysis_cmdCercaDown = QPushButton("Search downshifts")
         self.tbGearAnalysis_cmdCercaDown.clicked.connect(self.CercaCambiate)
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdCercaDown,5,0,1,2)
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdCercaDown,11,0,1,2)
 
         self.tbGearAnalysis_cmdPulisciUp = QPushButton("Clear all upshifts")
         self.tbGearAnalysis_cmdPulisciUp.clicked.connect(self.CercaCambiate)
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdPulisciUp,6,0,1,2)
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdPulisciUp,12,0,1,2)
 
         self.tbGearAnalysis_cmdPulisciDown = QPushButton("Clear all downshifts")
         self.tbGearAnalysis_cmdPulisciDown.clicked.connect(self.CercaCambiate)
-        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdPulisciDown,7,0,1,2)
+        self.tbGearAnalysisLayout.addWidget(self.tbGearAnalysis_cmdPulisciDown,13,0,1,2)
 
         # Tab per analisi marce
         self.subtbGearAnalysis = QTabWidget()
@@ -376,8 +412,10 @@ class MyMainWindow(QMainWindow):
             self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
             self.subtbRPMAnalysis_Correction_figure.clf()
             self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+            self.subtbGearAnalysis_Analysis_figure.clf()
+            self.subtbGearAnalysis_Analysis_canvas.draw_idle()
             # Impostazione del nome file
-            self.txtAudio.setText(nome[0])
+            self.txtAudio.setText(nome[0].replace("/","\\"))
             # Lettura del file
             fs = self.vettoreFrequenze[self.ddAudioFreq.currentIndex()]
             mono = self.ddAudioChannels.currentText() == "Mono"
@@ -705,6 +743,11 @@ class MyMainWindow(QMainWindow):
                             i1 = np.where(self.audio_fft["f"]>=rpmmax*armoniche[ia]/120)[0][0]
                             Y_predict[ia,it] = (np.argmax(self.audio_fft["stft"][i0:i1,it]) + i0 - 1)*12/armoniche[ia]
                     Y_predict = np.median(Y_predict,axis=0).astype(np.int16)
+                    # Applico il moltiplicatore manuale
+                    multi = np.float32(self.tbRPMAnalysis_Multiplier.text())
+                    if (multi is None) | (np.isnan(multi)):
+                        multi = 1
+                    Y_predict = (Y_predict*multi).astype(np.int16)
                 elif self.tbRPMAnalysis_analysisType.currentIndex() == 1:
                     # Rete neurale: carico il modello
                     nomerete = self.tbRPMAnalysis_NNmodel.currentText()
@@ -818,77 +861,78 @@ class MyMainWindow(QMainWindow):
                 self.subtbRPMAnalysis_Analysis_figure.tight_layout()
                 self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
             else:
-                # Giri già calcolati: ricalcolo i giri corretti partendo dai giri previsti
-                Y_predict = self.rpm["yraw"]
-                # Sistemo tutte le frequenze utilizzando la ricerca manuale del massimo per ogni punto previsto (dalla rete o dal metodo manuale)
-                if self.tbRPMAnalysis_Correction.currentIndex() > 0:
-                    ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
-                    Y = np.zeros(Y_predict.shape,dtype=np.int16)
-                    for iy in range(Y_predict.shape[0]):
-                        # Cerco il massimo sull'ordine della ricostruzione
-                        ir = np.argmax(self.audio_fft["stft"][Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
-                        # Cerco il massimo su tutti gli ordini disponibili
-                        i0 = np.zeros((ordini.shape[0],))
-                        pesi = np.zeros((ordini.shape[0],))
-                        for io in range(ordini.shape[0]):
-                            if int(Y_predict[iy]/ordini[io]) < (self.audio_fft["stft"].shape[0]-16):
-                                i0[io] = np.argmax(self.audio_fft["stft"][int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
-                                if i0[io]*ordini[io] > ir:
-                                    pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
-                                elif i0[io]*ordini[io] < ir:
-                                    pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
-                                else:
-                                    pesi[io] = 1
-                        # Calcolo la frequenza finale
-                        if self.tbRPMAnalysis_Correction.currentIndex() == 1:
-                            # Media pesata
-                            Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
-                        elif self.tbRPMAnalysis_Correction.currentIndex() == 2:
-                            # Mediana
-                            Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
-                else:
-                        Y = Y_predict
-                # Filtro i giri ricalcolati
-                # ["No filter","Rolling average","Median filter","Lowpass filter (light)","Lowpass filter (medium)","Lowpass filter (strong)"]
-                if self.tbRPMAnalysis_Filter.currentIndex() > 0:
-                    if self.tbRPMAnalysis_Filter.currentIndex() == 1:
-                        # Media mobile
-                        window_size = np.int16(self.tbRPMAnalysis_KernelSize.text())
-                        if (window_size < 0) | (window_size is None) | (window_size == np.nan):
-                            window_size = 11
-                        Y = np.convolve(Y, np.ones(window_size) / window_size, mode='valid').astype(np.int16)
-                    if self.tbRPMAnalysis_Filter.currentIndex() == 2:
-                        # Mediana mobile
-                        window_size = np.int16(self.tbRPMAnalysis_KernelSize.text())
-                        if (window_size < 0) | (window_size is None) | (window_size == np.nan):
-                            window_size = 11
-                        Y = ss.medfilt(Y,window_size).astype(np.int16)
-                    elif self.tbRPMAnalysis_Filter.currentIndex() == 3:
-                        # Lowpass
-                        fc = np.float32(self.tbRPMAnalysis_FilterFrequency.text())
-                        if (fc < 0) | (fc >= 1) | (fc is None) | (fc == np.nan):
-                            fc = 0.1
-                            self.tbRPMAnalysis_FilterFrequency.setText("0.1")
-                        b,a = ss.butter(1,fc)
-                        Y = ss.filtfilt(b,a,Y).astype(np.int16)
-                # Salvataggio dati nella struttura app
-                self.rpm["y"] = Y
-                # Plot
-                self.subtbRPMAnalysis_Analysis_figure.clf()
-                self.subtbRPMAnalysis_Analysis_axes = self.subtbRPMAnalysis_Analysis_figure.add_subplot()
-                self.subtbRPMAnalysis_Analysis_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
-                self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][Y_predict],'.w',label="predicted")
-                self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][Y],'.-r',label="corrected")
-                self.subtbRPMAnalysis_Analysis_axes.legend()
-                self.subtbRPMAnalysis_Analysis_axes.set_xlabel("time [s]")
-                self.subtbRPMAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
-                self.subtbRPMAnalysis_Analysis_axes.grid()
-                self.subtbRPMAnalysis_Analysis_axes1 = self.subtbRPMAnalysis_Analysis_axes.twinx()
-                self.subtbRPMAnalysis_Analysis_axes1.plot(self.audio_fft["t"],10*self.audio_fft["f"][Y],linewidth=0)
-                self.subtbRPMAnalysis_Analysis_axes1.set_ylabel("engine speed [rpm]")
-                self.subtbRPMAnalysis_Analysis_axes1.set_ylim(self.subtbRPMAnalysis_Analysis_axes.get_ylim()[0]*10,self.subtbRPMAnalysis_Analysis_axes.get_ylim()[1]*10)
-                self.subtbRPMAnalysis_Analysis_figure.tight_layout()
-                self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
+                # Controllo se i giri sono già stati calcolati: ricalcolo i giri corretti partendo dai giri previsti
+                if self.rpm["yraw"].shape[0] > 0:
+                    Y_predict = self.rpm["yraw"]
+                    # Sistemo tutte le frequenze utilizzando la ricerca manuale del massimo per ogni punto previsto (dalla rete o dal metodo manuale)
+                    if self.tbRPMAnalysis_Correction.currentIndex() > 0:
+                        ordini = np.array([12/14,12/13,12/9,  2,  3,  4])
+                        Y = np.zeros(Y_predict.shape,dtype=np.int16)
+                        for iy in range(Y_predict.shape[0]):
+                            # Cerco il massimo sull'ordine della ricostruzione
+                            ir = np.argmax(self.audio_fft["stft"][Y_predict[iy]-15:Y_predict[iy]+15,iy]) + Y_predict[iy] - 15
+                            # Cerco il massimo su tutti gli ordini disponibili
+                            i0 = np.zeros((ordini.shape[0],))
+                            pesi = np.zeros((ordini.shape[0],))
+                            for io in range(ordini.shape[0]):
+                                if int(Y_predict[iy]/ordini[io]) < (self.audio_fft["stft"].shape[0]-16):
+                                    i0[io] = np.argmax(self.audio_fft["stft"][int(Y_predict[iy]/ordini[io])-15:int(Y_predict[iy]/ordini[io])+15,iy]) + int(Y_predict[iy]/ordini[io]) - 15
+                                    if i0[io]*ordini[io] > ir:
+                                        pesi[io] = np.max([np.min([1-(i0[io]*ordini[io]-ir)/15,1]),0])
+                                    elif i0[io]*ordini[io] < ir:
+                                        pesi[io] = np.max([np.min([1-(ir-i0[io]*ordini[io])/15,1]),0])
+                                    else:
+                                        pesi[io] = 1
+                            # Calcolo la frequenza finale
+                            if self.tbRPMAnalysis_Correction.currentIndex() == 1:
+                                # Media pesata
+                                Y[iy] = np.round(np.average(np.hstack((ir,i0*ordini)),weights=np.hstack((2,pesi)))).astype(np.int16)
+                            elif self.tbRPMAnalysis_Correction.currentIndex() == 2:
+                                # Mediana
+                                Y[iy] = (np.median(i0[i0>0]*ordini[i0>0])).astype(np.int16)
+                    else:
+                            Y = Y_predict
+                    # Filtro i giri ricalcolati
+                    # ["No filter","Rolling average","Median filter","Lowpass filter (light)","Lowpass filter (medium)","Lowpass filter (strong)"]
+                    if self.tbRPMAnalysis_Filter.currentIndex() > 0:
+                        if self.tbRPMAnalysis_Filter.currentIndex() == 1:
+                            # Media mobile
+                            window_size = np.int16(self.tbRPMAnalysis_KernelSize.text())
+                            if (window_size < 0) | (window_size is None) | (window_size == np.nan):
+                                window_size = 11
+                            Y = np.convolve(Y, np.ones(window_size) / window_size, mode='valid').astype(np.int16)
+                        if self.tbRPMAnalysis_Filter.currentIndex() == 2:
+                            # Mediana mobile
+                            window_size = np.int16(self.tbRPMAnalysis_KernelSize.text())
+                            if (window_size < 0) | (window_size is None) | (window_size == np.nan):
+                                window_size = 11
+                            Y = ss.medfilt(Y,window_size).astype(np.int16)
+                        elif self.tbRPMAnalysis_Filter.currentIndex() == 3:
+                            # Lowpass
+                            fc = np.float32(self.tbRPMAnalysis_FilterFrequency.text())
+                            if (fc < 0) | (fc >= 1) | (fc is None) | (fc == np.nan):
+                                fc = 0.1
+                                self.tbRPMAnalysis_FilterFrequency.setText("0.1")
+                            b,a = ss.butter(1,fc)
+                            Y = ss.filtfilt(b,a,Y).astype(np.int16)
+                    # Salvataggio dati nella struttura app
+                    self.rpm["y"] = Y
+                    # Plot
+                    self.subtbRPMAnalysis_Analysis_figure.clf()
+                    self.subtbRPMAnalysis_Analysis_axes = self.subtbRPMAnalysis_Analysis_figure.add_subplot()
+                    self.subtbRPMAnalysis_Analysis_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
+                    self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][Y_predict],'.w',label="predicted")
+                    self.subtbRPMAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][Y],'.-r',label="corrected")
+                    self.subtbRPMAnalysis_Analysis_axes.legend()
+                    self.subtbRPMAnalysis_Analysis_axes.set_xlabel("time [s]")
+                    self.subtbRPMAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
+                    self.subtbRPMAnalysis_Analysis_axes.grid()
+                    self.subtbRPMAnalysis_Analysis_axes1 = self.subtbRPMAnalysis_Analysis_axes.twinx()
+                    self.subtbRPMAnalysis_Analysis_axes1.plot(self.audio_fft["t"],10*self.audio_fft["f"][Y],linewidth=0)
+                    self.subtbRPMAnalysis_Analysis_axes1.set_ylabel("engine speed [rpm]")
+                    self.subtbRPMAnalysis_Analysis_axes1.set_ylim(self.subtbRPMAnalysis_Analysis_axes.get_ylim()[0]*10,self.subtbRPMAnalysis_Analysis_axes.get_ylim()[1]*10)
+                    self.subtbRPMAnalysis_Analysis_figure.tight_layout()
+                    self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
             
     def salvaRPM(self):
         # File dialog
@@ -986,14 +1030,153 @@ class MyMainWindow(QMainWindow):
         if np.shape(self.rpm["y"])[0] > 0:
             if self.sender().text().find("Search") >= 0:
                 if self.sender().text().find("upshifts") >= 0:
-                    a = 1
+                    # ANALISI UPSHIFT
+                    # Pulisco la struttura gear
+                    self.gear["iup"] = np.array([])
+                    self.gear["dmarciaup"] = np.array([])
+                    # Frequenza di filtraggio dei giri motore
+                    fcut = np.float32(self.tbGearAnalysis_LPupFrequency.text())
+                    if (fcut is None) | (np.isnan(fcut)) | (fcut <= 0) | (fcut >= 1):
+                        fcut = 0.25
+                    b,a = ss.butter(1,fcut)
+                    # Soglia annullamento derivata
+                    zeroth = np.int16(self.tbGearAnalysis_dRPM0upThreshold.text())
+                    if (zeroth is None) | (np.isnan(zeroth)):
+                        zeroth = np.int16(50)
+                    # Soglia derivata per individuazione cambiate
+                    upth = np.int16(self.tbGearAnalysis_dRPMupThreshold.text())
+                    if (upth is None) | (np.isnan(upth)) | (upth == 0):
+                        upth = np.int16(150)
+                    if upth < 0:
+                        upth = -upth
+                    # Filtro le frequenze
+                    fgirif = ss.filtfilt(b,a,self.rpm["y"]).astype("int")
+                    girif = 10*self.audio_fft["f"][fgirif]
+                    dgiri = np.hstack((0,np.diff(girif)))
+                    dgiri[np.abs(dgiri)<zeroth] = 0
+                    iup_all = np.where((dgiri[:-1]>-upth) & (dgiri[1:]<-upth))[0]
+                    iup = np.zeros((iup_all.shape[0],2),dtype="int")
+                    cnt = 0
+                    for i in iup_all:
+                        if cnt > 0:
+                            if ((np.argmin(girif[i-10:i+50]) + i - 10) - iup[cnt-1,1]) < 10:
+                                print("Doppione UPSHIFT")
+                            else:
+                                iup[cnt,0] = np.argmax(girif[i-10:i+50]) + i - 10
+                                iup[cnt,1] = np.argmin(girif[i-10:i+50]) + i - 10
+                                cnt += 1
+                        else:
+                            iup[cnt,0] = np.argmax(girif[i-10:i+50]) + i - 10
+                            iup[cnt,1] = np.argmin(girif[i-10:i+50]) + i - 10
+                            cnt += 1
+                    iup = iup[:np.where(iup[:,1]==0)[0][0],:]
+                    self.gear["iup"] = iup
+                    self.gear["dmarciaup"] = np.ones((iup.shape[0],),dtype="int")
                 elif self.sender().text().find("downshifts") >= 0:
-                    a = 1
+                    # ANALISI DOWNSHIFT
+                    # Pulisco la struttura gear
+                    self.gear["idown"] = np.array([])
+                    self.gear["dmarciadown"] = np.array([])
+                    # Frequenza di filtraggio dei giri motore
+                    fcut = np.float32(self.tbGearAnalysis_LPdownFrequency.text())
+                    if (fcut is None) | (np.isnan(fcut)) | (fcut <= 0) | (fcut >= 1):
+                        fcut = 0.5
+                    b,a = ss.butter(1,fcut)
+                    # Filtro i giri motore
+                    fgirif = ss.filtfilt(b,a,self.rpm["y"]).astype("int")
+                    girif = 10*self.audio_fft["f"][fgirif]
+                    # Calcolo la derivata dei giri
+                    dgiri = np.hstack((0,np.diff(girif)))
+                    # Filtro con mediana mobile
+                    kernel = np.int16(self.tbGearAnalysis_MedFiltKernel.text())
+                    if (kernel is None) | (np.isnan(kernel)):
+                        kernel = np.int16(11)
+                    if kernel > 0:
+                        if np.mod(kernel,2) == 0:
+                            kernel += 1
+                        dgirif = ss.medfilt(dgiri,11)
+                    else:
+                        dgirif = np.copy(dgiri)
+                    # Filtro la mediana mobile con passa basso
+                    fcut = np.float32(self.tbGearAnalysis_LPFiltFrequency.text())
+                    if (fcut is None) | (np.isnan(fcut)) | (fcut <= 0) | (fcut >= 1):
+                        fcut = 0.25
+                    b,a = ss.butter(1,fcut)
+                    dgiriff = ss.filtfilt(b,a,dgirif)
+                    # Prendo dalla GUI i parametri per la ricerca delle scalate (finestra ricerca minimo)
+                    finestraminimo = self.tbGearAnalysis_MinSearchWindow.text()
+                    finestraminimo = re.findall("(\d+),(\d+)",finestraminimo)[0]
+                    if len(finestraminimo) > 0:
+                        finestraminimo = np.array([np.uint8(f) if (np.int8(f)>0) else 1 for f in finestraminimo])
+                    else:
+                        finestraminimo = np.array([5,2],dtype=np.uint8)
+                    # Prendo dalla GUI i parametri per la ricerca delle scalate (finestra ricerca massimo)
+                    finestramassimo = self.tbGearAnalysis_MaxSearchWindow.text()
+                    finestramassimo = re.findall("(\d+),(\d+)",finestramassimo)[0]
+                    if len(finestramassimo) > 0:
+                        finestramassimo = np.array([np.uint8(f) if (np.int8(f)>0) else 1 for f in finestramassimo])
+                    else:
+                        finestramassimo = np.array([0,8],dtype=np.uint8)
+                    # Prendo dalla GUI i parametri per la ricerca delle scalate (finestra ricerca massimo 2)
+                    finestramassimo2 = self.tbGearAnalysis_Max2SearchWindow.text()
+                    finestramassimo2 = re.findall("(\d+),(\d+)",finestramassimo2)[0]
+                    if len(finestramassimo2) > 0:
+                        finestramassimo2 = np.array([np.uint8(f) if (np.int8(f)>0) else 1 for f in finestramassimo2])
+                    else:
+                        finestramassimo2 = np.array([0,3],dtype=np.uint8)
+                    # Cerco i punti in cui la derivata cambia segno
+                    izerocross = np.where((dgiriff[:-1]<0) & (dgiriff[1:]>0))[0]
+                    if izerocross[0] == 0:
+                        izerocross = izerocross[1:]
+                    # Basando la ricerca sui punti di 0-cross, vedo qual è il gradiente massimo della cambiata per eliminare i falsi downshift
+                    idown = np.zeros((izerocross.shape[0],2),dtype="int")
+                    cnt = 0
+                    for i in izerocross:
+                        igmin = np.max([np.argmin(girif[np.max([0,i-finestraminimo[0]]):np.min([girif.shape[0]-1,i+finestraminimo[1]])])+np.max([0,i-finestraminimo[0]]),0])
+                        gmin = girif[igmin]
+                        igmax = np.min([np.argmax(girif[np.max([0,i-finestramassimo[0]]):np.min([girif.shape[0]-1,i+finestramassimo[1]])])+np.max([0,i-finestramassimo[0]]),girif.shape[0]-1])
+                        gmax = girif[igmax]
+                        gmaxmax = girif[np.min([girif.shape[0]-1,igmax+finestramassimo2[1]])]
+                        if ((gmax-gmin) > 220) & (gmaxmax < gmax):
+                            # Si tratta effettivamente di un downshift: lo salvo
+                            idown[cnt,:] = np.array([igmin,igmax])
+                            cnt += 1
+                    idown = idown[:np.where(idown[:,0]>0)[0][-1]+1,:]
+                    self.gear["idown"] = idown
+                    self.gear["dmarciadown"] = -1*np.ones((idown.shape[0],),dtype="int")
             elif self.sender().text().find("Clear") >= 0:
                 if self.sender().text().find("upshifts") >= 0:
-                    a = 1
+                    self.gear["iup"] = np.array([])
+                    self.gear["dmarciaup"] = np.array([])
                 elif self.sender().text().find("downshifts") >= 0:
-                    a = 1
+                    self.gear["idown"] = np.array([])
+                    self.gear["dmarciadown"] = np.array([])
+            # Plot giri
+            self.subtbGearAnalysis_Analysis_figure.clf()
+            self.subtbGearAnalysis_Analysis_axes = self.subtbGearAnalysis_Analysis_figure.add_subplot()
+            self.subtbGearAnalysis_Analysis_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
+            self.subtbGearAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][self.rpm["y"]],'.-r',label="corrected")
+            self.subtbGearAnalysis_Analysis_axes.set_xlabel("time [s]")
+            self.subtbGearAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
+            self.subtbGearAnalysis_Analysis_axes.grid()
+            self.subtbGearAnalysis_Analysis_axes1 = self.subtbGearAnalysis_Analysis_axes.twinx()
+            self.subtbGearAnalysis_Analysis_axes1.plot(self.audio_fft["t"],10*self.audio_fft["f"][self.rpm["y"]],linewidth=0)
+            self.subtbGearAnalysis_Analysis_axes1.set_ylabel("engine speed [rpm]")
+            self.subtbGearAnalysis_Analysis_axes1.set_ylim(self.subtbGearAnalysis_Analysis_axes.get_ylim()[0]*10,self.subtbGearAnalysis_Analysis_axes.get_ylim()[1]*10)
+            # Plot marce (UP)
+            if self.gear["iup"].shape[0] > 0:
+                self.subtbGearAnalysis_Analysis_axes1.plot(self.audio_fft["t"][np.hstack([np.arange(i[0],i[1],dtype="int") for i in self.gear["iup"]])],
+                        self.audio_fft["f"][(self.rpm["y"][np.hstack([np.arange(i[0],i[1],dtype="int") for i in self.gear["iup"]])])]*10,'.',color="lime",markersize=10,gid="up")
+                for i in self.gear["iup"]:
+                    self.subtbGearAnalysis_Analysis_axes1.text(self.audio_fft["t"][i[0]],self.audio_fft["f"][self.rpm["y"][i[0]]]*10+400,"+1",fontweight="normal",fontsize=14,color="white",gid=str(int(i[0]+(i[1]-i[0])//2)))
+            # Plot marce (DOWN)
+            if self.gear["idown"].shape[0] > 0:
+                self.subtbGearAnalysis_Analysis_axes1.plot(self.audio_fft["t"][np.hstack([np.arange(i[0],i[1],dtype="int") for i in self.gear["idown"]])],
+                        self.audio_fft["f"][(self.rpm["y"][np.hstack([np.arange(i[0],i[1],dtype="int") for i in self.gear["idown"]])])]*10,'.',color="yellow",markersize=10,gid="down")
+                for i in self.gear["idown"]:
+                    self.subtbGearAnalysis_Analysis_axes1.text(self.audio_fft["t"][i[0]],self.audio_fft["f"][self.rpm["y"][i[1]]]*10+400,"-1",fontweight="normal",fontsize=14,color="white",gid=str(int(i[0]+(i[1]-i[0])//2)))
+            self.subtbGearAnalysis_Analysis_figure.tight_layout()
+            self.subtbGearAnalysis_Analysis_canvas.draw_idle()
         
 # Creazione istanza app
 app = QApplication(sys.argv)
