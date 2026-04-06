@@ -156,28 +156,33 @@ class MyMainWindow(QMainWindow):
         # Tab <Engine speed analysis>
         self.tbRPMAnalysisLayout = QGridLayout()
         self.tbRPMAnalysis.setLayout(self.tbRPMAnalysisLayout)
+
+        label = QLabel("Pitch shift")
+        self.tbRPMAnalysisLayout.addWidget(label,0,0)
+        self.tbRPMAnalysis_PitchShift = QLineEdit("1")
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_PitchShift,0,1)
         
         label = QLabel("Engine type")
-        self.tbRPMAnalysisLayout.addWidget(label,0,0)
+        self.tbRPMAnalysisLayout.addWidget(label,1,0)
         self.tbRPMAnalysis_engineType = QComboBox()
         self.tbRPMAnalysis_engineType.addItems(["F1","MotoGP","GT"])
         self.tbRPMAnalysis_engineType.currentIndexChanged.connect(self.cambiaEngineType)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_engineType,0,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_engineType,1,1)
         
         label = QLabel("Overlap")
-        self.tbRPMAnalysisLayout.addWidget(label,1,0)
+        self.tbRPMAnalysisLayout.addWidget(label,2,0)
         self.tbRPMAnalysis_overlap = QLineEdit("0.1")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_overlap,1,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_overlap,2,1)
         
         label = QLabel("Window length")
-        self.tbRPMAnalysisLayout.addWidget(label,2,0)
+        self.tbRPMAnalysisLayout.addWidget(label,3,0)
         self.tbRPMAnalysis_windowLength = QLineEdit("1024")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_windowLength,2,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_windowLength,3,1)
         
         label = QLabel("FFT points")
-        self.tbRPMAnalysisLayout.addWidget(label,3,0)
+        self.tbRPMAnalysisLayout.addWidget(label,4,0)
         self.tbRPMAnalysis_nFFT = QLineEdit("4096")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_nFFT,3,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_nFFT,4,1)
         
         #label = QLabel("Hop length")
         #self.tbRPMAnalysisLayout.addWidget(label,5,0)
@@ -186,87 +191,91 @@ class MyMainWindow(QMainWindow):
         
         self.tbRPMAnalysis_cmdFFT = QPushButton("Calculate FFT")
         self.tbRPMAnalysis_cmdFFT.clicked.connect(self.CalcolaFFT)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdFFT,4,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdFFT,5,0,1,2)
         
         label = QLabel("Analysis type")
-        self.tbRPMAnalysisLayout.addWidget(label,5,0)
+        self.tbRPMAnalysisLayout.addWidget(label,6,0)
         self.tbRPMAnalysis_analysisType = QComboBox()
         self.tbRPMAnalysis_analysisType.addItems(["Standard","AI"])
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_analysisType,5,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_analysisType,6,1)
         
         label = QLabel("Main harmonics")
-        self.tbRPMAnalysisLayout.addWidget(label,6,0)
+        self.tbRPMAnalysisLayout.addWidget(label,7,0)
         self.tbRPMAnalysis_baseHarmonics = QLineEdit("4,6,9")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_baseHarmonics,6,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_baseHarmonics,7,1)
 
         label = QLabel("Maximum engine speed")
-        self.tbRPMAnalysisLayout.addWidget(label,7,0)
+        self.tbRPMAnalysisLayout.addWidget(label,8,0)
         self.tbRPMAnalysis_maxRPM = QLineEdit("12500")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_maxRPM,7,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_maxRPM,8,1)
         
         label = QLabel("Minimum engine speed")
-        self.tbRPMAnalysisLayout.addWidget(label,8,0)
+        self.tbRPMAnalysisLayout.addWidget(label,9,0)
         self.tbRPMAnalysis_minRPM = QLineEdit("5000")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_minRPM,8,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_minRPM,9,1)
         
         label = QLabel("Manual multiplier")
-        self.tbRPMAnalysisLayout.addWidget(label,9,0)
+        self.tbRPMAnalysisLayout.addWidget(label,10,0)
         self.tbRPMAnalysis_Multiplier = QLineEdit("1")
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Multiplier,9,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Multiplier,10,1)
         
         label = QLabel("NN model")
-        self.tbRPMAnalysisLayout.addWidget(label,10,0)
+        self.tbRPMAnalysisLayout.addWidget(label,11,0)
         self.tbRPMAnalysis_NNmodel = QComboBox()
         self.tbRPMAnalysis_NNmodel.addItems(["F1_DeepSpeech_5_torch","F1_DeepSpeech_9_torch"])
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,10,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_NNmodel,11,1)
 
         label = QLabel("Correction")
-        self.tbRPMAnalysisLayout.addWidget(label,11,0)
+        self.tbRPMAnalysisLayout.addWidget(label,12,0)
         self.tbRPMAnalysis_Correction = QComboBox()
         self.tbRPMAnalysis_Correction.addItems(["No correction","Weighted average","Median"])
         self.tbRPMAnalysis_Correction.setCurrentIndex(2)
         self.tbRPMAnalysis_Correction.currentIndexChanged.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Correction,11,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Correction,12,1)
 
         label = QLabel("Filter")
-        self.tbRPMAnalysisLayout.addWidget(label,12,0)
+        self.tbRPMAnalysisLayout.addWidget(label,13,0)
         self.tbRPMAnalysis_Filter = QComboBox()
         self.tbRPMAnalysis_Filter.addItems(["No filter","Rolling average","Median filter","Lowpass filter"])
         self.tbRPMAnalysis_Filter.setCurrentIndex(2)
         self.tbRPMAnalysis_Filter.currentIndexChanged.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Filter,12,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_Filter,13,1)
 
         label = QLabel("Filter kernel size")
-        self.tbRPMAnalysisLayout.addWidget(label,13,0)
+        self.tbRPMAnalysisLayout.addWidget(label,14,0)
         self.tbRPMAnalysis_KernelSize = QLineEdit("11")
         self.tbRPMAnalysis_KernelSize.editingFinished.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_KernelSize,13,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_KernelSize,14,1)
 
         label = QLabel("LP filter frequency")
-        self.tbRPMAnalysisLayout.addWidget(label,14,0)
+        self.tbRPMAnalysisLayout.addWidget(label,15,0)
         self.tbRPMAnalysis_FilterFrequency = QLineEdit("0.1")
         self.tbRPMAnalysis_FilterFrequency.editingFinished.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterFrequency,14,1)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_FilterFrequency,15,1)
         
+        self.tbRPMAnalysis_cmdStartOver = QPushButton("Start over")
+        self.tbRPMAnalysis_cmdStartOver.clicked.connect(self.CancellaTuttoRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdStartOver,16,0,1,2)
+
         self.tbRPMAnalysis_cmdAutomatedAnalysis = QPushButton("Run automated analysis")
         self.tbRPMAnalysis_cmdAutomatedAnalysis.clicked.connect(self.AnalisiAutomaticaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,15,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdAutomatedAnalysis,17,0,1,2)
         
         self.tbRPMAnalysis_cmdManualAnalysis = QPushButton("Run manual analysis")
         self.tbRPMAnalysis_cmdManualAnalysis.clicked.connect(self.AnalisiManualeRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,16,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,18,0,1,2)
 
-        self.tbRPMAnalysis_cmdStartOver = QPushButton("Start over")
-        self.tbRPMAnalysis_cmdStartOver.clicked.connect(self.CancellaTuttoRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdStartOver,17,0,1,2)
+        self.tbRPMAnalysis_cmdManualAnalysis = QPushButton("Accept manual reconstruction")
+        self.tbRPMAnalysis_cmdManualAnalysis.clicked.connect(self.AnalisiManualeRPM)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdManualAnalysis,19,0,1,2)
         
         self.tbRPMAnalysis_cmdCaricaRPM = QPushButton("Load engine speed")
         self.tbRPMAnalysis_cmdCaricaRPM.clicked.connect(self.caricaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdCaricaRPM,18,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdCaricaRPM,20,0,1,2)
 
         self.tbRPMAnalysis_cmdSalvaRPM = QPushButton("Save engine speed")
         self.tbRPMAnalysis_cmdSalvaRPM.clicked.connect(self.salvaRPM)
-        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,19,0,1,2)
+        self.tbRPMAnalysisLayout.addWidget(self.tbRPMAnalysis_cmdSalvaRPM,21,0,1,2)
         
         # Tab per FFT
         self.subtbRPMAnalysis = QTabWidget()
@@ -468,8 +477,15 @@ class MyMainWindow(QMainWindow):
             win_length = np.int32(self.tbRPMAnalysis_windowLength.text())
             n_fft = np.int32(self.tbRPMAnalysis_nFFT.text())
             hop_length = int(win_length*overlap)
+            # Pitch shift
+            ps = np.float32(self.tbRPMAnalysis_PitchShift.text())
+            if (ps > 0) & (not (np.isnan(ps))):
+                if ps != 1:
+                    x = lib.effects.pitch_shift(self.audio_raw,sr=self.audio_fs,n_steps=ps,bins_per_octave=12,res_type="soxr_vhq",scale=False)
+                else:
+                    x = self.audio_raw
             # Calcolo STFT
-            f,t,stft = ss.stft(self.audio_raw,fs=self.audio_fs,window="hann",nperseg=win_length,noverlap=win_length-hop_length,nfft=n_fft)
+            f,t,stft = ss.stft(x,fs=self.audio_fs,window="hann",nperseg=win_length,noverlap=win_length-hop_length,nfft=n_fft)
             magnitude = np.abs(stft)
             magnitude[magnitude<1e-5] = 1e-5
             # Salvataggio nei dati app
@@ -690,38 +706,46 @@ class MyMainWindow(QMainWindow):
                 RS.clear()
                 LS.clear()
 
-        # Correzione manuale giri su plot: attivo la tab corrispondente
-        self.subtbRPMAnalysis.setCurrentIndex(2)
-        # Plotto i giri e definisco i callback per interagire con il grafico
-        self.subtbRPMAnalysis_Correction_figure.clf()
-        self.subtbRPMAnalysis_Correction_figure.set_gid(1)
-        self.subtbRPMAnalysis_Correction_axes = self.subtbRPMAnalysis_Correction_figure.add_subplot()
-        self.subtbRPMAnalysis_Correction_axes.set_gid(0)
-        self.subtbRPMAnalysis_Correction_axes1 = self.subtbRPMAnalysis_Correction_axes.twinx()
-        self.subtbRPMAnalysis_Correction_axes1.plot(np.array([self.audio_fft["t"][0],self.audio_fft["t"][-1]]),np.array([10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]]),linewidth=0)
-        self.subtbRPMAnalysis_Correction_axes1.set_ylim((10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]))
-        self.subtbRPMAnalysis_Correction_axes1.tick_params(top=True,labeltop=True,bottom=False,labelbottom=False)
-        self.subtbRPMAnalysis_Correction_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain")
-        if self.rpm["i"].shape[0] > 0:
-            self.subtbRPMAnalysis_Correction_axes.plot(self.rpm["i"],self.rpm["y"],'.-r',gid="giri")
-        self.subtbRPMAnalysis_Correction_axes.grid()
-        self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[RECTANGLE]")
-        self.subtbRPMAnalysis_Correction_axes.set_ylabel("frequency [Hz]")
-        self.subtbRPMAnalysis_Correction_axes1.set_ylabel("engine speed [rpm]")
-        self.subtbRPMAnalysis_Correction_axes.set_title("Q=8° (1.5)    -    W=9° (1.33)    -    E=10° (1.2)    -    R=11° (1.09)    -    Z=13° (1.08)    -    X=14° (1.16)    -    C=15° (1.25)    -    V=16° (1.33)")
-        RS = RectangleSelector(self.subtbRPMAnalysis_Correction_axes, dummy, useblit=True, button=[1], minspanx=5, minspany=5, spancoords='pixels', interactive=False)
-        LS = LassoSelector(self.subtbRPMAnalysis_Correction_axes, onselect=dummy_lasso, useblit=True, button=[1])
-        LS.active = False
-        
-        # Associazione callback
-        # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_release_event",disattivaLS)
-        # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",attivaLS)
-        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",tastiera)
-        self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("button_release_event",destro)
-        self.subtbRPMAnalysis_Correction_canvas.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-        self.subtbRPMAnalysis_Correction_canvas.setFocus()
-        self.subtbRPMAnalysis_Correction_figure.tight_layout()
-        self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+        if self.sender().text() == "Run manual analysis":
+            # Correzione manuale giri su plot: attivo la tab corrispondente
+            self.subtbRPMAnalysis.setCurrentIndex(2)
+            # Plotto i giri e definisco i callback per interagire con il grafico
+            self.subtbRPMAnalysis_Correction_figure.clf()
+            self.subtbRPMAnalysis_Correction_figure.set_gid(1)
+            self.subtbRPMAnalysis_Correction_axes = self.subtbRPMAnalysis_Correction_figure.add_subplot()
+            self.subtbRPMAnalysis_Correction_axes.set_gid(0)
+            self.subtbRPMAnalysis_Correction_axes1 = self.subtbRPMAnalysis_Correction_axes.twinx()
+            self.subtbRPMAnalysis_Correction_axes1.plot(np.array([self.audio_fft["t"][0],self.audio_fft["t"][-1]]),np.array([10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]]),linewidth=0)
+            self.subtbRPMAnalysis_Correction_axes1.set_ylim((10*self.audio_fft["f"][0],10*self.audio_fft["f"][-1]))
+            self.subtbRPMAnalysis_Correction_axes1.tick_params(top=True,labeltop=True,bottom=False,labelbottom=False)
+            self.subtbRPMAnalysis_Correction_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain")
+            if self.rpm["i"].shape[0] > 0:
+                self.subtbRPMAnalysis_Correction_axes.plot(self.rpm["i"],self.rpm["y"],'.-r',gid="giri")
+            self.subtbRPMAnalysis_Correction_axes.grid()
+            self.subtbRPMAnalysis_Correction_axes.set_xlabel("sample\n[RECTANGLE]")
+            self.subtbRPMAnalysis_Correction_axes.set_ylabel("frequency [Hz]")
+            self.subtbRPMAnalysis_Correction_axes1.set_ylabel("engine speed [rpm]")
+            self.subtbRPMAnalysis_Correction_axes.set_title("Q=8° (1.5)    -    W=9° (1.33)    -    E=10° (1.2)    -    R=11° (1.09)    -    Z=13° (1.08)    -    X=14° (1.16)    -    C=15° (1.25)    -    V=16° (1.33)")
+            RS = RectangleSelector(self.subtbRPMAnalysis_Correction_axes, dummy, useblit=True, button=[1], minspanx=5, minspany=5, spancoords='pixels', interactive=False)
+            LS = LassoSelector(self.subtbRPMAnalysis_Correction_axes, onselect=dummy_lasso, useblit=True, button=[1])
+            LS.active = False
+            # Associazione callback
+            # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_release_event",disattivaLS)
+            # self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",attivaLS)
+            self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("key_press_event",tastiera)
+            self.subtbRPMAnalysis_Correction_figure.canvas.mpl_connect("button_release_event",destro)
+            self.subtbRPMAnalysis_Correction_canvas.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+            self.subtbRPMAnalysis_Correction_canvas.setFocus()
+            self.subtbRPMAnalysis_Correction_figure.tight_layout()
+            self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+        elif self.sender().text() == "Accept manual reconstruction":
+            # Salvo i giri ricostruiti nella struttura dell'app
+            linea = [t for t in self.subtbRPMAnalysis_Correction_figure.axes[0].get_lines() if t.get_gid()=="giri"]
+            if len(linea) > 0:
+                self.rpm["i"] = linea[0]._x.astype(np.int64)
+                self.rpm["t"] = self.audio_fft["t"][self.rpm["i"]]
+                self.rpm["y"] = linea[0]._y.astype(np.int16)
+                self.rpm["yraw"] = linea[0]._y.astype(np.int16)
 
     def AnalisiAutomaticaRPM(self):
         # Detection automatica dei giri tramite armoniche o tramite rete neurale
