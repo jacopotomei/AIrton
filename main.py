@@ -47,7 +47,7 @@ class MyMainWindow(QMainWindow):
         # Inizializzazione struttura app
         self.audio_fft = {"f":np.array([]),"t":np.array([]),"stft":np.array([[]])}
         self.rpm = {"i":np.array([]),"t":np.array([]),"y":np.array([]),"yraw":np.array([])}
-        self.gear = {"iup":np.array([]),"idown":np.array([]),"dmarciaup":np.array([]),"dmarciadown":np.array([])}
+        self.gear = {"iup":np.array([]),"idown":np.array([]),"dmarciaup":np.array([]),"dmarciadown":np.array([]),"dgiriup":np.array([]),"dgiridown":np.array([])}
         # Creazione componenti
         self.creaWidgets()
         # Disattivo le shortcut di matplotlib
@@ -1067,6 +1067,7 @@ class MyMainWindow(QMainWindow):
                     # Pulisco la struttura gear
                     self.gear["iup"] = np.array([])
                     self.gear["dmarciaup"] = np.array([])
+                    self.gear["dgiriup"] = np.array([])
                     # Frequenza di filtraggio dei giri motore
                     fcut = np.float32(self.tbGearAnalysis_LPupFrequency.text())
                     if (fcut is None) | (np.isnan(fcut)) | (fcut <= 0) | (fcut >= 1):
@@ -1082,11 +1083,14 @@ class MyMainWindow(QMainWindow):
                         upth = np.int16(150)
                     if upth < 0:
                         upth = -upth
-                    # Filtro le frequenze
+                    # Filtro i giri motore
                     fgirif = ss.filtfilt(b,a,self.rpm["y"]).astype("int")
                     girif = 10*self.audio_fft["f"][fgirif]
+                    # Calcolo la derivata dei giri
                     dgiri = np.hstack((0,np.diff(girif)))
                     dgiri[np.abs(dgiri)<zeroth] = 0
+                    self.gear["dgiriup"] = dgiri
+                    # Inizializzo la struttura degli indici degli upshift
                     iup_all = np.where((dgiri[:-1]>-upth) & (dgiri[1:]<-upth))[0]
                     iup = np.zeros((iup_all.shape[0],2),dtype="int")
                     cnt = 0
@@ -1102,7 +1106,8 @@ class MyMainWindow(QMainWindow):
                             iup[cnt,0] = np.argmax(girif[i-10:i+50]) + i - 10
                             iup[cnt,1] = np.argmin(girif[i-10:i+50]) + i - 10
                             cnt += 1
-                    iup = iup[:np.where(iup[:,1]==0)[0][0],:]
+                    if np.where(iup[:,1]==0)[0].shape[0] > 0:
+                        iup = iup[:np.where(iup[:,1]==0)[0][0],:]
                     self.gear["iup"] = iup
                     self.gear["dmarciaup"] = np.ones((iup.shape[0],),dtype="int")
                 elif self.sender().text().find("downshifts") >= 0:
@@ -1110,6 +1115,7 @@ class MyMainWindow(QMainWindow):
                     # Pulisco la struttura gear
                     self.gear["idown"] = np.array([])
                     self.gear["dmarciadown"] = np.array([])
+                    self.gear["dgiridown"] = np.array([])
                     # Frequenza di filtraggio dei giri motore
                     fcut = np.float32(self.tbGearAnalysis_LPdownFrequency.text())
                     if (fcut is None) | (np.isnan(fcut)) | (fcut <= 0) | (fcut >= 1):
@@ -1136,6 +1142,7 @@ class MyMainWindow(QMainWindow):
                         fcut = 0.25
                     b,a = ss.butter(1,fcut)
                     dgiriff = ss.filtfilt(b,a,dgirif)
+                    self.gear["dgiridown"] = dgiri
                     # Prendo dalla GUI i parametri per la ricerca delle scalate (finestra ricerca minimo)
                     finestraminimo = self.tbGearAnalysis_MinSearchWindow.text()
                     finestraminimo = re.findall("(\d+),(\d+)",finestraminimo)[0]
@@ -1174,28 +1181,31 @@ class MyMainWindow(QMainWindow):
                             # Si tratta effettivamente di un downshift: lo salvo
                             idown[cnt,:] = np.array([igmin,igmax])
                             cnt += 1
-                    idown = idown[:np.where(idown[:,0]>0)[0][-1]+1,:]
+                    if np.where(idown[:,0]>0)[0].shape[0] > 0:
+                        idown = idown[:np.where(idown[:,0]>0)[0][-1]+1,:]
                     self.gear["idown"] = idown
                     self.gear["dmarciadown"] = -1*np.ones((idown.shape[0],),dtype="int")
             elif self.sender().text().find("Clear") >= 0:
                 if self.sender().text().find("upshifts") >= 0:
                     self.gear["iup"] = np.array([])
                     self.gear["dmarciaup"] = np.array([])
+                    self.gear["dgiriup"] = np.array([])
                 elif self.sender().text().find("downshifts") >= 0:
                     self.gear["idown"] = np.array([])
                     self.gear["dmarciadown"] = np.array([])
+                    self.gear["dgiridown"] = np.array([])
             # Plot giri
             self.subtbGearAnalysis_Analysis_figure.clf()
-            self.subtbGearAnalysis_Analysis_axes = self.subtbGearAnalysis_Analysis_figure.add_subplot()
-            self.subtbGearAnalysis_Analysis_axes.imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
-            self.subtbGearAnalysis_Analysis_axes.plot(self.audio_fft["t"],self.audio_fft["f"][self.rpm["y"]],'.-r',label="corrected")
-            self.subtbGearAnalysis_Analysis_axes.set_xlabel("time [s]")
-            self.subtbGearAnalysis_Analysis_axes.set_ylabel("frequency [Hz]")
-            self.subtbGearAnalysis_Analysis_axes.grid()
-            self.subtbGearAnalysis_Analysis_axes1 = self.subtbGearAnalysis_Analysis_axes.twinx()
+            self.subtbGearAnalysis_Analysis_axes = self.subtbGearAnalysis_Analysis_figure.subplot_mosaic([["fft"],["fft"],["fft"],["derivata"]],sharex=True,gridspec_kw={"hspace": 0})
+            self.subtbGearAnalysis_Analysis_axes["fft"].imshow(self.audio_fft["stft"],origin="lower",aspect="auto",cmap="terrain",extent=(self.audio_fft["t"][0],self.audio_fft["t"][-1],self.audio_fft["f"][0],self.audio_fft["f"][-1]))
+            self.subtbGearAnalysis_Analysis_axes["fft"].plot(self.audio_fft["t"],self.audio_fft["f"][self.rpm["y"]],'.-r',label="corrected")
+            self.subtbGearAnalysis_Analysis_axes["fft"].set_xlabel("time [s]")
+            self.subtbGearAnalysis_Analysis_axes["fft"].set_ylabel("frequency [Hz]")
+            self.subtbGearAnalysis_Analysis_axes["fft"].grid()
+            self.subtbGearAnalysis_Analysis_axes1 = self.subtbGearAnalysis_Analysis_axes["fft"].twinx()
             self.subtbGearAnalysis_Analysis_axes1.plot(self.audio_fft["t"],10*self.audio_fft["f"][self.rpm["y"]],linewidth=0)
             self.subtbGearAnalysis_Analysis_axes1.set_ylabel("engine speed [rpm]")
-            self.subtbGearAnalysis_Analysis_axes1.set_ylim(self.subtbGearAnalysis_Analysis_axes.get_ylim()[0]*10,self.subtbGearAnalysis_Analysis_axes.get_ylim()[1]*10)
+            self.subtbGearAnalysis_Analysis_axes1.set_ylim(self.subtbGearAnalysis_Analysis_axes["fft"].get_ylim()[0]*10,self.subtbGearAnalysis_Analysis_axes["fft"].get_ylim()[1]*10)
             # Plot marce (UP)
             if self.gear["iup"].shape[0] > 0:
                 self.subtbGearAnalysis_Analysis_axes1.plot(self.audio_fft["t"][np.hstack([np.arange(i[0],i[1],dtype="int") for i in self.gear["iup"]])],
@@ -1208,6 +1218,15 @@ class MyMainWindow(QMainWindow):
                         self.audio_fft["f"][(self.rpm["y"][np.hstack([np.arange(i[0],i[1],dtype="int") for i in self.gear["idown"]])])]*10,'.',color="yellow",markersize=10,gid="down")
                 for i in self.gear["idown"]:
                     self.subtbGearAnalysis_Analysis_axes1.text(self.audio_fft["t"][i[0]],self.audio_fft["f"][self.rpm["y"][i[1]]]*10+400,"-1",fontweight="normal",fontsize=14,color="white",gid=str(int(i[0]+(i[1]-i[0])//2)))
+            # Plot derivata
+            if self.gear["dgiriup"].shape[0] > 0:
+                self.subtbGearAnalysis_Analysis_axes["derivata"].plot(self.audio_fft["t"],self.gear["dgiriup"],'r',label="upshift",linewidth=1)
+            if self.gear["dgiridown"].shape[0] > 0:
+                self.subtbGearAnalysis_Analysis_axes["derivata"].plot(self.audio_fft["t"],self.gear["dgiridown"],'k',label="downshift",linewidth=1)
+            self.subtbGearAnalysis_Analysis_axes["derivata"].grid()
+            self.subtbGearAnalysis_Analysis_axes["derivata"].legend()
+            self.subtbGearAnalysis_Analysis_axes["derivata"].set_xlabel("time [s]")
+            self.subtbGearAnalysis_Analysis_axes["derivata"].set_ylabel("engine speed derivative [rpm/s]")
             self.subtbGearAnalysis_Analysis_figure.tight_layout()
             self.subtbGearAnalysis_Analysis_canvas.draw_idle()
         
