@@ -507,17 +507,26 @@ class MyMainWindow(QMainWindow):
             self.subtbRPMAnalysis_FFT_canvas.draw_idle()
     
     def CancellaTuttoRPM(self):
-        self.rpm = {"i":np.array([]),"t":np.array([]),"y":np.array([]),"yraw":np.array([])}
-        if hasattr(self,"subtbRPMAnalysis_Analysis_axes"):
-            [c.remove() for c in self.subtbRPMAnalysis_Analysis_axes.get_children() if c._label in ["predicted","corrected"]]
-        if hasattr(self,"subtbRPMAnalysis_Analysis_axes1"):
-            [c.remove() for c in self.subtbRPMAnalysis_Analysis_axes1.get_children() if c._label in ["predicted","corrected"]]
-        self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
-        if hasattr(self,"subtbRPMAnalysis_Correction_axes"):
-            [c.remove() for c in self.subtbRPMAnalysis_Correction_axes.get_children() if c._gid in ["giri"]]
-        if hasattr(self,"subtbRPMAnalysis_Correction_axes1"):
-            [c.remove() for c in self.subtbRPMAnalysis_Correction_axes1.get_children() if c._gid in ["giri"]]
-        self.subtbRPMAnalysis_Correction_canvas.draw_idle()
+        # Messagebox di conferma
+        msg = QMessageBox()
+        msg.setWindowTitle("AIrton")
+        msg.setText("Do you want to clear the engine speed analysis?")
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.No)
+        response = msg.exec()
+        if response == QMessageBox.StandardButton.Yes:
+            self.rpm = {"i":np.array([]),"t":np.array([]),"y":np.array([]),"yraw":np.array([])}
+            if hasattr(self,"subtbRPMAnalysis_Analysis_axes"):
+                [c.remove() for c in self.subtbRPMAnalysis_Analysis_axes.get_children() if c._label in ["predicted","corrected"]]
+            if hasattr(self,"subtbRPMAnalysis_Analysis_axes1"):
+                [c.remove() for c in self.subtbRPMAnalysis_Analysis_axes1.get_children() if c._label in ["predicted","corrected"]]
+            self.subtbRPMAnalysis_Analysis_canvas.draw_idle()
+            if hasattr(self,"subtbRPMAnalysis_Correction_axes"):
+                [c.remove() for c in self.subtbRPMAnalysis_Correction_axes.get_children() if c._gid in ["giri"]]
+            if hasattr(self,"subtbRPMAnalysis_Correction_axes1"):
+                [c.remove() for c in self.subtbRPMAnalysis_Correction_axes1.get_children() if c._gid in ["giri"]]
+            self.subtbRPMAnalysis_Correction_canvas.draw_idle()
     
     def AnalisiManualeRPM(self):
         # Definizione funzioni: tab
